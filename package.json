@@ -1,0 +1,26 @@
+{
+  "name": "esgi-rocketleague-presence-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "rmdir /q /s dist && tsc && node ./dist index.ts",
+    "prod_start": "rm -rf dist && tsc && node ./dist index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sn0wFR/ESGI-RocketLeague-Presence-BOT.git"
+  },
+  "author": "Sn0wFR",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sn0wFR/ESGI-RocketLeague-Presence-BOT/issues"
+  },
+  "homepage": "https://github.com/Sn0wFR/ESGI-RocketLeague-Presence-BOT#readme",
+  "dependencies": {
+    "discord.js": "^13.8.0",
+    "dotenv": "^16.0.1",
+    "typescript": "^4.7.3"
+  }
+}
