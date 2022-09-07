@@ -297,15 +297,6 @@ client.on('messageCreate', (message) => {
 })
 
 client.on('messageCreate', (message) => {
-    if(message.content === '?export' && message.channel.id === txtChannel){
-        console.log("export");
-        message.channel.send("Export en cours de dev");
-        //TODO export
-
-    }
-})
-
-client.on('messageCreate', (message) => {
     if(message.content === '?help' && message.channel.id === txtChannel){
         console.log("help");
         message.channel.send("!start: démarre la recherche de joueurs\n!stop: arrête la recherche de joueurs\n!status: affiche le status de la recherche\n!total: affiche le total de présence de tous les joueurs\n!clear: supprime toutes les données\n!help: affiche ce message");
@@ -317,8 +308,6 @@ client.on('messageCreate', (message) => {
     if(message.content.startsWith("?") && !cmdList.includes(message.content) && message.channel.id === txtChannel && !message.author.bot){
         message.channel.send("Commande inconnue !\n!start: démarre la recherche de joueurs\n!stop: arrête la recherche de joueurs\n!status: affiche le status de la recherche\n!total: affiche le total de présence de tous les joueurs\n!clear: supprime toutes les données\n!help: affiche ce message");
     }
-
-    //Si commande inconnue
 })
 
 client.on('messageCreate', async (message) => {
