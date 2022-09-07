@@ -1,5 +1,4 @@
 import {config} from "dotenv";
-import {Client, Intents, User, VoiceState} from 'discord.js';
 
 config();
 
