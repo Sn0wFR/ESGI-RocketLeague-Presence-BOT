@@ -564,7 +564,7 @@ client.on('messageCreate', async (message) => {
                 let role2 = message.guild?.roles.cache.find(role => role.name === "nouveau");
                 if (role && role2){
                     message.member?.roles.add(role);
-                    message.member?.roles.add(role2);
+                    message.member?.roles.remove(role2);
                 }else{
                     message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas, veuillez contacter Sn0w#7505");
                 }
