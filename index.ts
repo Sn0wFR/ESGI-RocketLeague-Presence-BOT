@@ -572,7 +572,7 @@ client.on('messageCreate', async (message) => {
 
 
         } else {
-            message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+            message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) \n Pour les prénom ou nom comportant des espace, remplacer les par des '-'");
         }
     }
 })
