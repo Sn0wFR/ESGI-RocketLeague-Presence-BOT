@@ -524,7 +524,7 @@ client.on('messageCreate', async (message) => {
             let classe = list[3];
             let mail = list[4];
             if(!mail.includes("@")){
-                message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+                message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
                 return;
             }
             let userName = list[5];
@@ -577,7 +577,7 @@ client.on('messageCreate', async (message) => {
 
 
         } else {
-            message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+            message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
         }
     }
 })
