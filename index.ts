@@ -560,15 +560,20 @@ client.on('messageCreate', async (message) => {
 
             message.channel.send("<@" + message.member?.id + "> Vous êtes maintenant inscrit");
             setInterval(() => {
-                let role = message.guild?.roles.cache.find(role => role.name === "inscrit");
-                let role2 = message.guild?.roles.cache.find(role => role.name === "nouveau");
+                let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
+                let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
                 if (role && role2){
-                    message.member?.roles.add(role);
-                    message.member?.roles.remove(role2);
+                    try {
+                        message.member?.roles.add(role);
+                        message.member?.roles.remove(role2);
+                    }catch (err){
+                        console.log(err);
+                    }
+
                 }else{
                     message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas, veuillez contacter Sn0w#7505");
                 }
-            }, 5000);
+            }, 3000);
 
 
         } else {
