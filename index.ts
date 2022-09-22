@@ -562,16 +562,13 @@ client.on('messageCreate', async (message) => {
             setInterval(() => {
                 let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
                 let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
-                if (role && role2){
-                    try {
-                        message.member?.roles.add(role);
-                        message.member?.roles.remove(role2);
-                    }catch (err){
-                        console.log(err);
-                    }
+                if (role && role2 && message.member) {
+
+                    message.member.roles.add(role);
+                    message.member.roles.remove(role2);
 
                 }else{
-                    message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas, veuillez contacter Sn0w#7505");
+                    message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter Sn0w#7505");
                 }
             }, 3000);
 
