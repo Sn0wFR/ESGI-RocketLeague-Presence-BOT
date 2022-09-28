@@ -381,7 +381,10 @@ client.on('messageCreate', async (message) => {
             }
         }
         total.forEach((value, key) => {
-            totalString += key + ": " + value + "\n";
+            let hours = Math.floor(value / 3600000);
+            let minutes = Math.floor((value % 3600000) / 60000);
+            let seconds = Math.floor(((value % 360000) % 60000) / 1000);
+            totalString += key + " : " + hours + "h " + minutes + "m " + seconds + "s\n";
         });
         if (totalString !== "") {
             message.channel.send(totalString);
