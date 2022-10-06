@@ -28,7 +28,7 @@ let total: Map<string, number>; // <tag, totalPresence>
 let status: Boolean = false; // true if the bot is currently looking
 
 
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription"]; // list of commands
+let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -517,7 +517,9 @@ client.on('messageCreate', async (message) => {
 })
 
 client.on('messageCreate', async (message) => {
-    if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.tag === "Sn0wFR#7505")) && message.channel.id === inscriptionChannel) {
+    if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.tag === "Sn0w#7505")) && message.channel.id === inscriptionChannel) {
+        message.channel.send("entered !");
+        let member = message.member;
         let msg = message.content;
         let list = msg.split(' ');
         let discordName: string | undefined = "";
@@ -526,10 +528,13 @@ client.on('messageCreate', async (message) => {
         let classe = "";
         let mail = "";
         let userName = "";
+        message.channel.send("avant data !");
         let data = await authorize().then(getData).catch(console.error);
+        message.channel.send("apres data !");
         let check = true;
 
         if(message.content.startsWith('?inscription')) {
+            message.channel.send("inscription !");
             if (msg.split(' ').length === 6) {
                 discordName = message.member?.user.tag;
                 name = list[1];
@@ -552,11 +557,18 @@ client.on('messageCreate', async (message) => {
                 return;
             }
         }else if(message.content.startsWith('?adminInscription')){
+            message.channel.send("test");
             if (msg.split(' ').length === 7) {
                 discordName = list[1];
-                if(!message.guild?.members.fetch(discordName)){
-                    message.channel.send("<@" + message.member?.id + "> L'utilisateur n'existe pas");
+                // get all member
+                let members = await message.guild?.members.fetch();
+                let memberFind = members?.find((member) => member.user.tag === discordName);
+
+                if(!memberFind){
+                    message.channel.send("L'utilisateur n'existe pas !");
                     return;
+                }else{
+                    member = memberFind;
                 }
                 name = list[2];
                 lastName = list[3];
@@ -573,7 +585,7 @@ client.on('messageCreate', async (message) => {
         }
 
         if (!check){
-            message.channel.send("<@" + message.member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter Sn0w#7505");
+            message.channel.send("<@" + member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter Sn0w#7505");
             return;
         }
 
