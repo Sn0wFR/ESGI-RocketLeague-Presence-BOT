@@ -28,7 +28,7 @@ let total: Map<string, number>; // <tag, totalPresence>
 let status: Boolean = false; // true if the bot is currently looking
 
 
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription"]; // list of commands
+let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -517,66 +517,106 @@ client.on('messageCreate', async (message) => {
 })
 
 client.on('messageCreate', async (message) => {
-    if (message.content.startsWith('?inscription') && message.channel.id === inscriptionChannel) {
+    if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.tag === "Sn0w#7505")) && message.channel.id === inscriptionChannel) {
+        message.channel.send("entered !");
+        let member = message.member;
         let msg = message.content;
-        if (msg.split(' ').length === 6) {
-            let list = msg.split(' ');
-            let discordName = message.member?.user.tag;
-            let name = list[1];
-            let lastName = list[2];
-            let classe = list[3];
-            let mail = list[4];
-            if(!mail.includes("@")){
+        let list = msg.split(' ');
+        let discordName: string | undefined = "";
+        let name = "";
+        let lastName = "";
+        let classe = "";
+        let mail = "";
+        let userName = "";
+        message.channel.send("avant data !");
+        let data = await authorize().then(getData).catch(console.error);
+        message.channel.send("apres data !");
+        let check = true;
+
+        if(message.content.startsWith('?inscription')) {
+            message.channel.send("inscription !");
+            if (msg.split(' ').length === 6) {
+                discordName = message.member?.user.tag;
+                name = list[1];
+                lastName = list[2];
+                classe = list[3];
+                mail = list[4];
+                if (!mail.includes("@")) {
+                    message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+                    return;
+                }
+                userName = list[5];
+                data.forEach((row: any) => {
+                    if (row[0] === discordName) {
+                        check = false;
+                        return;
+                    }
+                })
+            } else {
                 message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
                 return;
             }
-            let userName = list[5];
-            let data = await authorize().then(getData).catch(console.error);
-            let check: boolean = true;
-            data.forEach((row: any) => {
-                if(row[0] === discordName){
-                    check = false;
+        }else if(message.content.startsWith('?adminInscription')){
+            message.channel.send("test");
+            if (msg.split(' ').length === 7) {
+                discordName = list[1];
+                // get all member
+                let members = await message.guild?.members.fetch();
+                let memberFind = members?.find((member) => member.user.tag === discordName);
+
+                if(!memberFind){
+                    message.channel.send("L'utilisateur n'existe pas !");
                     return;
-                }
-            })
-
-            if (!check){
-                message.channel.send("<@" + message.member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter Sn0w#7505");
-                return;
-            }
-            let value = [discordName, userName, name, lastName, classe, mail, '0j 0h 0m 0s', '0'];
-
-            let rowInfo = data[0];
-            let countInfo: number = 0;
-            rowInfo.forEach((info: any) => {
-                countInfo = countInfo + 1;
-            });
-
-            for (let i = 8; i < countInfo; i++) {
-                value.push('X');
-            }
-
-            data.push(value);
-
-            dataValue = data
-            authorize().then(sendData);
-
-            message.channel.send("<@" + message.member?.id + "> Vous êtes maintenant inscrit");
-                let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
-                let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
-                if (role && role2 && message.member) {
-
-                    await message.member.roles.add(role);
-                    await message.member.roles.remove(role2);
-
                 }else{
-                    message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter Sn0w#7505");
+                    member = memberFind;
                 }
-
-
-        } else {
-            message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) \n Pour les prénom ou nom comportant des espace, remplacer les par des '-'");
+                name = list[2];
+                lastName = list[3];
+                classe = list[4];
+                mail = list[5];
+                userName = list[6];
+                data.forEach((row: any) => {
+                    if (row[0] === discordName) {
+                        check = false;
+                        return;
+                    }
+                })
+            }
         }
+
+        if (!check){
+            message.channel.send("<@" + member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter Sn0w#7505");
+            return;
+        }
+
+        let value = [discordName, userName, name, lastName, classe, mail, '0j 0h 0m 0s', '0'];
+
+        let rowInfo = data[0];
+        let countInfo: number = 0;
+        rowInfo.forEach((info: any) => {
+            countInfo = countInfo + 1;
+        });
+
+        for (let i = 8; i < countInfo; i++) {
+            value.push('X');
+        }
+
+        data.push(value);
+
+        dataValue = data
+        authorize().then(sendData);
+
+        message.channel.send("<@" + message.member?.id + "> Vous êtes maintenant inscrit");
+        let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
+        let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
+        if (role && role2 && message.member) {
+            await message.member.roles.add(role);
+            await message.member.roles.remove(role2);
+
+        }else{
+            message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter Sn0w#7505");
+        }
+
     }
 })
 
