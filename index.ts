@@ -606,12 +606,12 @@ client.on('messageCreate', async (message) => {
         dataValue = data
         authorize().then(sendData);
 
-        message.channel.send("<@" + message.member?.id + "> Vous êtes maintenant inscrit");
+        message.channel.send("<@" + member?.id + "> Vous êtes maintenant inscrit");
         let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
         let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
         if (role && role2 && message.member) {
-            await message.member.roles.add(role);
-            await message.member.roles.remove(role2);
+            await member!.roles.add(role);
+            await member!.roles.remove(role2);
 
         }else{
             message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter Sn0w#7505");
