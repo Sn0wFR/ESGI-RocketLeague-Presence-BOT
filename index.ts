@@ -1,4 +1,5 @@
 import {config} from "dotenv";
+import { readFileSync, writeFileSync, promises as fsPromises } from "fs";
 
 config();
 
@@ -24,6 +25,7 @@ const minimalTime: number = 30;
 let playerPresence: Map<string, number>; // <tag, timestamp>
 
 let total: Map<string, number>; // <tag, totalPresence>
+let totalError: Map<string,Map<string, number>>; // List<date, List<tag, totalPresence>>
 
 let status: Boolean = false; // true if the bot is currently looking
 
@@ -137,7 +139,7 @@ async function getData(auth: any) {
     return rows;
 }
 
-async function sendData(auth: any) {
+async function sendData(auth: any): Promise<boolean> {
     const sheets = google.sheets({version: 'v4', auth});
 
     const body = {
@@ -157,19 +159,77 @@ async function sendData(auth: any) {
         });
     } catch (err) {
         console.log(err);
-        return;
+        return false;
     }
+
+    return true;
 
 }
 
-client.once('ready', () => {
-    console.log('Ready!');
-    playerPresence = new Map<string, number>();
-    total = new Map<string, number>();
-    saveTotal = new Map<string, number>();
+client.once('ready', async () => {
+        console.log('Ready!');
+        playerPresence = new Map<string, number>();
+        total = new Map<string, number>();
+        saveTotal = new Map<string, number>();
+        totalError = new Map<string, Map<string, number>>(); // List<date, List<tag, totalPresence>>
+
+        let data = "";
+        //return;
+        try {
+            data = await fs.readFile("./exportError.txt", "utf8").then((data: string) => {
+                return data;
+            });
+            console.log(data);
+            await fs.truncate("./exportError.txt", 0);
+        } catch (err) {
+            console.log("No error file found");
+            return;
+        }
+        let listData = data.split("\n");
+        let needState: number = 0; // 0 = date, 1 = equalsLine, 2 = listData & equalsLine
+        for (const element of listData) {
+            switch (needState) {
+                case 0:
+                    if (element.includes("/")) {
+                        needState = 1;
+                        let listRaw = element.split("/");
+                        totalError.set(listRaw[0] + "/" + listRaw[1], new Map<string, number>());
+                    }
+                    break;
+                case 1:
+                    if (element.includes("===================")) {
+                        needState = 2;
+                    }
+                    break;
+                case 2:
+
+                    if (element.includes(":")) {
+                        let listRaw = element.split(" : ");
+                        let tag = listRaw[0];
+                        let total = parseInt(listRaw[1]);
+                        let getLastKeyInMap = (map = totalError) => [...map][map.size - 1][0];
+                        console.log("getLastKeyInMap : " + getLastKeyInMap());
+                        totalError.get(getLastKeyInMap())?.set(tag, total);
+                    } else if (element.includes("===================")) {
+                        let getLastKeyInMap = (map = totalError): string => {
+                            return [...map][map.size - 1][0];
+                        };
+                        console.log("getLastKeyInMap : " + getLastKeyInMap());
+                        await doExport(totalError.get(getLastKeyInMap())!, getLastKeyInMap());
+                        console.log("Exported");
+                        //wait 20 secondes
+                        /*
+                        await new Promise(resolve => setTimeout(resolve, 20000));
+                        console.log("Waited");*/
+                        needState = 0;
+                    }
+            }
+        }
 });
 
-client.login(token).then(r => {});
+//TODO exporter tous d'un coup
+
+client.login(token).then(r => console.log("Logged in"));
 
 
 
@@ -426,95 +486,143 @@ client.on('messageCreate', (message) => {
 
 client.on('messageCreate', async (message) => {
     if (message.content === '?export' && !status && message.channel.id === txtChannel) {
-        message.channel.send("OK !");
-        let sheetData = await authorize().then(getData).catch(console.error);
 
-        let infoRow = sheetData[0];
+        let res: boolean = await doExport(total);
 
-        let rowCount: number = 0;
+        if(res){
+            message.channel.send("OK ! Le total a été clear (Récupération possible avec ?total)");
+        }else{
+            message.channel.send("Erreur: Problème avec l'export. Sauvegarde dans un fichier qui sera rejouer au prochain lancement du bot");
+        }
+    }
+})
 
-        infoRow.forEach((value: any) => {
-            rowCount = rowCount + 1;
-        })
-
+async function doExport(total: Map<string, number>, date: string = ""): Promise<boolean> {
+    let dateValue = "";
+    if(date === "") {
+        console.log("basic date");
         let dayDate = new Date();
         let day = dayDate.getDate();
         let month = dayDate.getMonth() + 1;
-        let dateValue = "";
-        if(day < 10){
+
+        if (day < 10) {
             dateValue = "0" + day;
-        }else{
+        } else {
             dateValue = "" + day;
         }
 
-        if(month < 10){
+        if (month < 10) {
             dateValue = dateValue + "/0" + month;
-        }else{
+        } else {
             dateValue = dateValue + "/" + month;
         }
+    }else{
+        console.log("custom date");
+        dateValue = date;
+    }
 
-        infoRow[rowCount] = dateValue;
+    console.log("dateValue 1: "+dateValue);
 
+    let isInError = false;
+    let sheetData = await authorize().then(getData).catch(async (err) => {
+        console.log(err);
+
+
+        let data: string = "";
+        data += dateValue
+        data += "\n"
+        data += "===================\n"
         total.forEach((value, key) => {
-            sheetData.forEach((row: any) => {
-                if(row[0] === key){
-                    console.log("entered");
-                    let calc: number = 0
-                    let actual: string = row[6];
-                    let aDay = actual.substring(0, actual.indexOf("j"));
-                    calc = calc + (parseInt(aDay) * 24 * 60 * 60 * 1000);
-
-                    let aHour = actual.substring(actual.indexOf("j")+2, actual.indexOf("h"));
-                    calc = calc + (parseInt(aHour) * 60 * 60 * 1000);
-
-                    let aMinute = actual.substring(actual.indexOf("h")+2, actual.indexOf("m"));
-                    calc = calc + (parseInt(aMinute) * 60 * 1000);
-
-                    let aSecond = actual.substring(actual.indexOf("m")+2, actual.indexOf("s"));
-                    calc = calc + (parseInt(aSecond) * 1000);
-
-                    let ms = calc + value;
-                    let days = Math.floor(ms / (24*60*60*1000));
-                    let daysms = ms % (24*60*60*1000);
-                    let hours = Math.floor(daysms / (60*60*1000));
-                    let hoursms = ms % (60*60*1000);
-                    let minutes = Math.floor(hoursms / (60*1000));
-                    let minutesms = ms % (60*1000);
-                    let sec = Math.floor(minutesms / 1000);
-                    row[6] = days + "j " + hours + "h " + minutes + "m " + sec + "s";
-
-                    let msV = value;
-                    let daysV = Math.floor(msV / (24*60*60*1000));
-                    let daysmsV = msV % (24*60*60*1000);
-                    let hoursV = Math.floor(daysmsV / (60*60*1000));
-                    let hoursmsV = msV % (60*60*1000);
-                    let minutesV = Math.floor(hoursmsV / (60*1000));
-                    let minutesmsV = msV % (60*1000);
-                    let secV = Math.floor(minutesmsV / 1000);
-
-
-                    if (hoursV > 0 || minutesV >= minimalTime){
-                        row[7] = parseInt(row[7]) + 1;
-                    }
-                    row.push(hoursV + "h " + minutesV + "m " + secV + "s");
-
-                }
-            })
+            data += key
+            data += " : "
+            data += value.toString()
+            data += "\n";
         })
+        data += "===================\n\n"
+        console.log(data);
+        await fs.writeFile("./exportError.txt", data, {
+            flag: 'a'
+        }).then(() => {});
+        isInError = true;
+        return;
+    });
 
+    if (isInError) {
+        return false;
+    }
+
+    let infoRow = sheetData[0];
+
+    let rowCount: number = 0;
+
+    infoRow.forEach((value: any) => {
+        rowCount = rowCount + 1;
+    })
+
+    console.log("dateValue 2: "+dateValue);
+    infoRow[rowCount] = dateValue;
+
+    total.forEach((value, key) => {
         sheetData.forEach((row: any) => {
-            if (!row[rowCount]){
-                row.push("X");
+            if (row[0] === key) {
+                console.log("entered");
+                let calc: number = 0
+                let actual: string = row[6];
+                let aDay = actual.substring(0, actual.indexOf("j"));
+                calc = calc + (parseInt(aDay) * 24 * 60 * 60 * 1000);
+
+                let aHour = actual.substring(actual.indexOf("j") + 2, actual.indexOf("h"));
+                calc = calc + (parseInt(aHour) * 60 * 60 * 1000);
+
+                let aMinute = actual.substring(actual.indexOf("h") + 2, actual.indexOf("m"));
+                calc = calc + (parseInt(aMinute) * 60 * 1000);
+
+                let aSecond = actual.substring(actual.indexOf("m") + 2, actual.indexOf("s"));
+                calc = calc + (parseInt(aSecond) * 1000);
+
+                let ms = calc + value;
+                let days = Math.floor(ms / (24 * 60 * 60 * 1000));
+                let daysms = ms % (24 * 60 * 60 * 1000);
+                let hours = Math.floor(daysms / (60 * 60 * 1000));
+                let hoursms = ms % (60 * 60 * 1000);
+                let minutes = Math.floor(hoursms / (60 * 1000));
+                let minutesms = ms % (60 * 1000);
+                let sec = Math.floor(minutesms / 1000);
+                row[6] = days + "j " + hours + "h " + minutes + "m " + sec + "s";
+
+                let msV = value;
+                let daysV = Math.floor(msV / (24 * 60 * 60 * 1000));
+                let daysmsV = msV % (24 * 60 * 60 * 1000);
+                let hoursV = Math.floor(daysmsV / (60 * 60 * 1000));
+                let hoursmsV = msV % (60 * 60 * 1000);
+                let minutesV = Math.floor(hoursmsV / (60 * 1000));
+                let minutesmsV = msV % (60 * 1000);
+                let secV = Math.floor(minutesmsV / 1000);
+
+
+                if (hoursV > 0 || minutesV >= minimalTime) {
+                    row[7] = parseInt(row[7]) + 1;
+                }
+                row.push(hoursV + "h " + minutesV + "m " + secV + "s");
+
             }
         })
+    })
 
-        dataValue = sheetData;
+    sheetData.forEach((row: any) => {
+        if (!row[rowCount]) {
+            row.push("X");
+        }
+    })
 
-        authorize().then(sendData);
+    dataValue = sheetData;
 
-        clearing();
-    }
-})
+    await authorize().then(sendData);
+
+    clearing();
+
+    return true;
+}
 
 client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?inscription') && message.channel.id === inscriptionChannel) {
@@ -589,3 +697,5 @@ client.on("guildMemberAdd", (member) => {
     }
     console.log("fin")
 })
+
+//TODO: En cas de pb d'export, ecrire la liste dans un fichier et pouvoir lire les donnée plus tard et re exporter la liste (en ordonnant les dates)
