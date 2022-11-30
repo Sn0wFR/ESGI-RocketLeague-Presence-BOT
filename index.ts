@@ -626,7 +626,7 @@ client.on("guildMemberAdd", (member) => {
 })
 
 client.on('messageCreate', async (message) => {
-    if (message.content.startsWith('?sendRapport') && message.channel.id === process.env.ID_CHANNEL_TXT) {
+    if (message.content.startsWith('?sendRapport') && (message.channel.id === process.env.ID_CHANNEL_TXT || process.env.ID_CHANNEL_RAPPORT)) {
         let data = await authorize().then(getData).catch(console.error);
         let msg = "";
         data.forEach((row: any) => {
