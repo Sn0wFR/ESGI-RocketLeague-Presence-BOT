@@ -8,7 +8,7 @@ import {
     GuildMember,
     Intents,
     MessageReaction,
-    PartialMessageReaction, PartialUser,
+    PartialMessageReaction, PartialUser, TextChannel,
     User,
     VoiceChannel,
     VoiceState
@@ -45,6 +45,16 @@ if(process.env.ID_CHANNEL_VOICE) {
 let inscriptionChannel: string = "";
 if(process.env.ID_CHANNEL_INSCRIPTION) {
     inscriptionChannel = process.env.ID_CHANNEL_INSCRIPTION.toString();
+}
+
+let rapportChannel: string = "";
+if(process.env.ID_CHANNEL_RAPPORT) {
+    rapportChannel = process.env.ID_CHANNEL_RAPPORT.toString();
+}
+
+let logRapportChannel: string = "";
+if(process.env.ID_CHANNEL_LOG_RAPPORT) {
+    logRapportChannel = process.env.ID_CHANNEL_LOG_RAPPORT.toString();
 }
 
 let saveTotal: Map<string, number>; // <tag, totalPresence>
@@ -626,19 +636,25 @@ client.on("guildMemberAdd", (member) => {
 })
 
 client.on('messageCreate', async (message) => {
-    if (message.content.startsWith('?sendRapport') && (message.channel.id === process.env.ID_CHANNEL_TXT || process.env.ID_CHANNEL_RAPPORT)) {
+    if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
+        let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
+        await debugChannel.send("-" + message.member?.user.tag + "- Rapport en cours de traitement");
         let data = await authorize().then(getData).catch(console.error);
+        await debugChannel.send("-" + message.member?.user.tag + "- Data récupéré");
         let msg = "";
         data.forEach((row: any) => {
             if (row[0] === message.member?.user.tag) {
                 msg = msg + "PseudoRL : " + row[1] + "\nPrenom : " + row[2] + "\nNom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + row[7] + "\n";
             }
         })
+        await debugChannel.send("-" + message.member?.user.tag + "- Message créer");
         if(msg === ""){
-            message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505");
+            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505");
+            await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé (erreur)");
             return;
         }else {
-            message.member?.send(msg);
+            await message.member?.send(msg);
+            await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
         }
     }
 })
