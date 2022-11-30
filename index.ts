@@ -28,7 +28,7 @@ let total: Map<string, number>; // <tag, totalPresence>
 let status: Boolean = false; // true if the bot is currently looking
 
 
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription"]; // list of commands
+let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -628,4 +628,22 @@ client.on("guildMemberAdd", (member) => {
         member.roles.add(role);
     }
     console.log("fin")
+})
+
+client.on('messageCreate', async (message) => {
+    if (message.content.startsWith('?sendRapport') && message.channel.id === process.env.ID_CHANNEL_TXT) {
+        let data = await authorize().then(getData).catch(console.error);
+        let msg = "";
+        data.forEach((row: any) => {
+            if (row[0] === message.member?.user.tag) {
+                msg = msg + "PseudoRL : " + row[1] + "\nPrenom : " + row[2] + "\nNom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + row[7] + "\n";
+            }
+        })
+        if(msg === ""){
+            message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505");
+            return;
+        }else {
+            message.member?.send(msg);
+        }
+    }
 })
