@@ -518,7 +518,6 @@ client.on('messageCreate', async (message) => {
 
 client.on('messageCreate', async (message) => {
     if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.tag === "Sn0w#7505")) && message.channel.id === inscriptionChannel) {
-        message.channel.send("entered !");
         let member = message.member;
         let msg = message.content;
         let list = msg.split(' ');
@@ -528,13 +527,10 @@ client.on('messageCreate', async (message) => {
         let classe = "";
         let mail = "";
         let userName = "";
-        message.channel.send("avant data !");
         let data = await authorize().then(getData).catch(console.error);
-        message.channel.send("apres data !");
         let check = true;
 
         if(message.content.startsWith('?inscription')) {
-            message.channel.send("inscription !");
             if (msg.split(' ').length === 6) {
                 discordName = message.member?.user.tag;
                 name = list[1];
@@ -557,7 +553,6 @@ client.on('messageCreate', async (message) => {
                 return;
             }
         }else if(message.content.startsWith('?adminInscription')){
-            message.channel.send("test");
             if (msg.split(' ').length === 7) {
                 discordName = list[1];
                 // get all member
