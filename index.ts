@@ -649,11 +649,11 @@ client.on('messageCreate', async (message) => {
         })
         await debugChannel.send("-" + message.member?.user.tag + "- Message créer");
         if(msg === ""){
-            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505");
+            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505\n Si vous avez récement changer votre tag discord, signalé(e) le moi :) ").catch(console.error);
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé (erreur)");
             return;
         }else {
-            await message.member?.send(msg);
+            await message.member?.send(msg).catch(console.error);
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
         }
     }
