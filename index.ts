@@ -657,11 +657,7 @@ client.on('messageCreate', async (message) => {
             await message.member?.send(msg).catch(console.error);
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
         }
-    }
-})
-
-client.on('messageCreate', async (message) => {
-    if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
+    }else if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
 
         console.log("sendOPENrapport");
         
@@ -694,9 +690,6 @@ client.on('messageCreate', async (message) => {
         let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
 
         console.log("created file");
-        
-
-        
 
     }
 })
