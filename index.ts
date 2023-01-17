@@ -7,6 +7,7 @@ import {
     Collection,
     GuildMember,
     Intents,
+    MessageAttachment,
     MessageReaction,
     PartialMessageReaction, PartialUser, TextChannel,
     User,
@@ -656,5 +657,46 @@ client.on('messageCreate', async (message) => {
             await message.member?.send(msg).catch(console.error);
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
         }
+    }
+})
+
+client.on('messageCreate', async (message) => {
+    if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
+
+        console.log("sendOPENrapport");
+        
+
+        //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
+        let data = await authorize().then(getData).catch(console.error);
+
+        console.log("get data");
+        
+        let msg1I = "Nom;Prenom;Classe;Point";
+        let msgOther = "Nom;Prenom;Classe;Point";
+
+
+        data.forEach((row: string) => {
+
+            if(!row[4].startsWith('1PPA')){
+                if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI")) {
+                    msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                }else{
+                    msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                }
+            }
+
+            
+        });
+
+        console.log("created msg");
+
+        let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I.csv");
+        let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
+
+        console.log("created file");
+        
+
+        
+
     }
 })
