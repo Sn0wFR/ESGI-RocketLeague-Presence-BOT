@@ -29,7 +29,7 @@ let total: Map<string, number>; // <tag, totalPresence>
 let status: Boolean = false; // true if the bot is currently looking
 
 
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport"]; // list of commands
+let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport", "?sendOPENrapport"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -690,6 +690,8 @@ client.on('messageCreate', async (message) => {
         let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
 
         console.log("created file");
+
+        await message.channel.send({files: [file1I, fileOther]});
 
     }
 })
