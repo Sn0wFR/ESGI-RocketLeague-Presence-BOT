@@ -674,7 +674,7 @@ client.on('messageCreate', async (message) => {
         data.forEach((row: string) => {
 
             if(!row[4].startsWith('1PPA')){
-                if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI")) {
+                if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
                     msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
                 }else{
                     msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
@@ -686,7 +686,7 @@ client.on('messageCreate', async (message) => {
 
         console.log("created msg");
 
-        let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I.csv");
+        let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I2I.csv");
         let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
 
         console.log("created file");
