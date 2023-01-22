@@ -7,6 +7,7 @@ import {
     Collection,
     GuildMember,
     Intents,
+    MessageAttachment,
     MessageReaction,
     PartialMessageReaction, PartialUser, TextChannel,
     User,
@@ -28,7 +29,7 @@ let total: Map<string, number>; // <tag, totalPresence>
 let status: Boolean = false; // true if the bot is currently looking
 
 
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport"]; // list of commands
+let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport", "?sendOPENrapport"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -656,5 +657,41 @@ client.on('messageCreate', async (message) => {
             await message.member?.send(msg).catch(console.error);
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
         }
+    }else if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
+
+        console.log("sendOPENrapport");
+        
+
+        //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
+        let data = await authorize().then(getData).catch(console.error);
+
+        console.log("get data");
+        
+        let msg1I = "Nom;Prenom;Classe;Point";
+        let msgOther = "Nom;Prenom;Classe;Point";
+
+
+        data.forEach((row: string) => {
+
+            if(!row[4].startsWith('1PPA')){
+                if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
+                    msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                }else{
+                    msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                }
+            }
+
+            
+        });
+
+        console.log("created msg");
+
+        let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I2I.csv");
+        let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
+
+        console.log("created file");
+
+        await message.channel.send({files: [file1I, fileOther]});
+
     }
 })
