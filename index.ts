@@ -6,7 +6,7 @@ import {
     Client,
     Collection,
     GuildMember,
-    Intents,
+    Intents, Message,
     MessageReaction,
     PartialMessageReaction, PartialUser, TextChannel,
     User,
@@ -649,12 +649,23 @@ client.on('messageCreate', async (message) => {
         })
         await debugChannel.send("-" + message.member?.user.tag + "- Message créer");
         if(msg === ""){
-            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505\n Si vous avez récement changer votre tag discord, signalé(e) le moi :) ").catch(console.error);
+            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505\n Si vous avez récement changer votre tag discord, signalé(e) le moi :) ").catch(console.error).then(() => {
+                msg = "Un problème est survenu, veuillez contacter Sn0w#7505\n Si vous avez récement changer votre tag discord, signalé(e) le moi :) ";
+                sendPrivateChannelMessage(message, msg);
+            });
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé (erreur)");
             return;
         }else {
-            await message.member?.send(msg).catch(console.error);
+            await message.member?.send(msg).catch(console.error).then(() => {
+                sendPrivateChannelMessage(message, msg);
+            });
             await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
+            sendPrivateChannelMessage(message, msg);
         }
     }
 })
+
+function sendPrivateChannelMessage(message: Message<boolean>, msg: string) {
+    // reply to this user only
+    message.reply(msg);
+}
