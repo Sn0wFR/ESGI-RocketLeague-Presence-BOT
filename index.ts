@@ -645,7 +645,15 @@ client.on('messageCreate', async (message) => {
         let msg = "";
         data.forEach((row: any) => {
             if (row[0] === message.member?.user.tag) {
-                msg = msg + "PseudoRL : " + row[1] + "\nPrenom : " + row[2] + "\nNom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + row[7] + "\n";
+                let pointToRemove = 0
+                for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
+                    if (row[i] != 'X') {
+                        console.log(row[i]);
+                        pointToRemove = pointToRemove + 1; //participation before second semester
+                    }
+                }
+                let totalPoint = parseInt(row[7]) - pointToRemove;
+                msg = msg + "PseudoRL : " + row[1] + "\nPrenom : " + row[2] + "\nNom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + totalPoint + "\n";
             }
         })
         await debugChannel.send("-" + message.member?.user.tag + "- Message créer");
