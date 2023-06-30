@@ -690,9 +690,9 @@ client.on('messageCreate', async (message) => {
                         if (l == undefined){
                             continue;
                         }
-                        let lh = l.substring(0, l.indexOf('h'));
+                        let lh = l.substring(0, l.indexOf('h')+1);
                         console.log("lh: " + lh)
-                        let lm = l.substring(l.indexOf('h')+2, l.indexOf('m'));
+                        let lm = l.substring(l.indexOf('h')+2, l.indexOf('m')+1);
                         console.log("lm: " + lm)
 
                         if (lh.length == 2) {
