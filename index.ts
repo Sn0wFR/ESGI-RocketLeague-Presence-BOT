@@ -682,10 +682,19 @@ client.on('messageCreate', async (message) => {
         data.forEach((row: string) => {
 
             if(!row[4].startsWith('1PPA')){
+                let pointToRemove = 0
+                for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
+                    if (row[i] != 'X') {
+                        console.log(row[i]);
+                        pointToRemove = pointToRemove + 1; //participation before second semester
+                    }
+                }
+                let totalPoint = parseInt(row[7]) - pointToRemove;
+
                 if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
-                    msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                    msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
                 }else{
-                    msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + row[7];
+                    msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
                 }
             }
 
