@@ -686,13 +686,14 @@ client.on('messageCreate', async (message) => {
                 for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
                     if (row[i] != 'X') {
                         let l = row[i] as string
-                        let ligne = l.split(" ")
-                        if (ligne[0].length == 2) {
-                            if (parseInt(ligne[0].substring(0, 1)) == 0) {
-                                if (ligne[1].length == 2) {
+                        let lh = l.substring(0, l.indexOf('h'));
+                        let lm = l.substring(l.indexOf('h')+2, l.indexOf('m'));
+                        if (lh.length == 2) {
+                            if (parseInt(lh.substring(0, 1)) == 0) {
+                                if (lm.length == 2) {
                                     continue;
                                 } else {
-                                    if (parseInt(ligne[1].substring(0, 2)) < 30) {
+                                    if (parseInt(lm.substring(0, 2)) < 30) {
                                         continue;
                                     }
                                 }
