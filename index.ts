@@ -687,6 +687,9 @@ client.on('messageCreate', async (message) => {
                     if (row[i] != 'X') {
                         let l = row[i]
                         console.log("la ligne =:" + l)
+                        if (l == undefined){
+                            continue;
+                        }
                         let lh = l.substring(0, l.indexOf('h'));
                         let lm = l.substring(l.indexOf('h')+2, l.indexOf('m'));
                         if (lh.length == 2) {
