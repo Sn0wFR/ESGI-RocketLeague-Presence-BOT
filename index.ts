@@ -685,6 +685,18 @@ client.on('messageCreate', async (message) => {
                 let pointToRemove = 0
                 for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
                     if (row[i] != 'X') {
+                        let ligne = row[i].split(" ");
+                        if (ligne[0].length == 2) {
+                            if (parseInt(ligne[0].substring(0, 1)) == 0) {
+                                if (ligne[1].length == 2) {
+                                    continue;
+                                } else {
+                                    if (parseInt(ligne[1].substring(0, 2)) < 30) {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
                         console.log(row[i]);
                         pointToRemove = pointToRemove + 1; //participation before second semester
                     }
