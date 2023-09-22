@@ -22,9 +22,9 @@ let msgReactId: string = "";
 
 const minimalTime: number = 30;
 
-let playerPresence: Map<string, number>; // <tag, timestamp>
+let playerPresence: Map<string, number>; // <id, timestamp>
 
-let total: Map<string, number>; // <tag, totalPresence>
+let total: Map<string, number>; // <id, totalPresence>
 
 let status: Boolean = false; // true if the bot is currently looking
 
@@ -58,7 +58,7 @@ if(process.env.ID_CHANNEL_LOG_RAPPORT) {
     logRapportChannel = process.env.ID_CHANNEL_LOG_RAPPORT.toString();
 }
 
-let saveTotal: Map<string, number>; // <tag, totalPresence>
+let saveTotal: Map<string, number>; // <id, totalPresence>
 
 let dataValue: String[][];
 
@@ -137,7 +137,8 @@ async function getData(auth: any) {
 
     const res = await sheets.spreadsheets.values.get({
         //spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
-        spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
+        //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
+        spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
         range: 'Sheet1',
     });
     const rows = res.data.values;
@@ -157,7 +158,8 @@ async function sendData(auth: any) {
 
     try {
         sheets.spreadsheets.values.update({
-            spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
+            //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
+            spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
             range: 'Sheet1',
             valueInputOption: 'RAW',
             resource: body
@@ -198,45 +200,48 @@ client.on('voiceStateUpdate', (oldState: VoiceState, newState: VoiceState) => {
 
 function startUserCount(newState: any) {
     let member: User = newState.member.user;
-    console.log(member.tag);
-    if (!playerPresence.has(member.tag)) {
-        playerPresence.set(member.tag, new Date().getTime());
-        console.log("added " + member.tag);
+    if (!playerPresence.has(member.id)) {
+        playerPresence.set(member.id, new Date().getTime());
+        console.log("added " + member.id);
     }
 }
 
 function endUserCount(oldState: any) {
     let member: User = oldState.member.user;
-    if (playerPresence.has(member.tag)) {
-        let playerTime = playerPresence.get(member.tag);
+    if (playerPresence.has(member.id)) {
+        let playerTime = playerPresence.get(member.id);
         if (playerTime) {
             let timeNow = new Date().getTime();
             console.log(timeNow);
             let timeDiff = timeNow - playerTime;
-            if (total.has(member.tag)) {
-                let totalTime = total.get(member.tag);
+            if (total.has(member.id)) {
+                let totalTime = total.get(member.id);
                 if (totalTime) {
-                    total.set(member.tag, totalTime + timeDiff);
-                    console.log("added " + member.tag + " " + timeDiff + " | total: " + total.get(member.tag));
-                    playerPresence.delete(member.tag);
+                    total.set(member.id, totalTime + timeDiff);
+                    playerPresence.delete(member.id);
                 }
             } else {
-                total.set(member.tag, timeDiff);
-                console.log("added new " + member.tag + " " + timeDiff);
-                playerPresence.delete(member.tag);
+                total.set(member.id, timeDiff);
+                playerPresence.delete(member.id);
             }
         }
     }
 }
 
-client.on('messageCreate', (message) => {
-    if(message.content === '?status' && message.channel.id === txtChannel) {
-        console.log("status");
-        if (status) {
-            message.channel.send('Bot is currently looking');
-        }else{
-            message.channel.send('Bot is not looking');
+client.on('messageCreate', async (message) => {
+    if (message && message.content === '?resetRolesAll' && message.channel.id === txtChannel){
+        let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
+        let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
+        if (message && message.guild) {
+            let listMembers = await message.guild.members.fetch();
+            for (const [str, member] of listMembers.filter(m => !m.user.bot)) {
+                await member.roles.remove(role!);
+                await member.roles.add(role2!);
+            }
+
         }
+
+        message.channel.send(`**${message.author.username}**, role **${role!.name}** was removed and role **${role2!.name}** was added to all members`);
     }
 })
 
@@ -250,22 +255,27 @@ client.on('messageCreate', (message) => {
         status = true;
         voiceChannel.forEach((channel) => {
             let voiceChat = null;
-            if(message && message.guild) {
+            if (message && message.guild) {
                 voiceChat = message.guild.channels.cache.get(channel!);
             }
             if (voiceChat) {
                 let members = voiceChat.members as Collection<string, GuildMember>;
                 if (members.size > 0) {
                     for (let member of members.values()) {
-                        playerPresence.set(member.user.tag, new Date().getTime());
-                        console.log("added " + member.user.tag);
-
+                        playerPresence.set(member.user.id, new Date().getTime());
                     }
                 }
             }
         })
 
         message.channel.send('Bot is now looking');
+    }else if(message.content === '?status' && message.channel.id === txtChannel) {
+        console.log("status");
+        if (status) {
+            message.channel.send('Bot is currently looking');
+        }else{
+            message.channel.send('Bot is not looking');
+        }
     }
 })
 
@@ -287,9 +297,9 @@ client.on('messageCreate', (message) => {
                 let members = voiceChat.members as Collection<string, GuildMember>;
                 if (members.size > 0) {
                     for (let member of members.values()) {
-                        if (playerPresence.has(member.user.tag)) {
-                            let v: number = new Date().getTime() - playerPresence.get(member.user.tag)!;
-                            let k = member.user.tag;
+                        if (playerPresence.has(member.user.id)) {
+                            let v: number = new Date().getTime() - playerPresence.get(member.user.id)!;
+                            let k = member.user.id;
                             let res: number = v;
                             if(total && total.get(k) !== undefined){
                                 res = res + total.get(k)!;
@@ -528,7 +538,7 @@ client.on('messageCreate', async (message) => {
 })
 
 client.on('messageCreate', async (message) => {
-    if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.tag === "Sn0w#7505")) && message.channel.id === inscriptionChannel) {
+    if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.id === "210066772483637248")) && message.channel.id === inscriptionChannel) {
         let member = message.member;
         let msg = message.content;
         let list = msg.split(' ');
@@ -543,13 +553,13 @@ client.on('messageCreate', async (message) => {
 
         if(message.content.startsWith('?inscription')) {
             if (msg.split(' ').length === 6) {
-                discordName = message.member?.user.tag;
+                discordName = message.member?.user.id;
                 name = list[1];
                 lastName = list[2];
                 classe = list[3];
                 mail = list[4];
                 if (!mail.includes("@")) {
-                    message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+                    message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription FERREIRA Mathieu 5AL mferreira30@myges.fr Sn0wFR) ");
                     return;
                 }
                 userName = list[5];
@@ -560,7 +570,7 @@ client.on('messageCreate', async (message) => {
                     }
                 })
             } else {
-                message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre prenom nom classe mail_myges et pseudo RL. (ex: ?inscription Mathieu Ferreira 4AL mferreira30@myges.fr Sn0wFR) ");
+                message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription FERREIRA Mathieu 5AL mferreira30@myges.fr Sn0wFR) ");
                 return;
             }
         }else if(message.content.startsWith('?adminInscription')){
@@ -568,7 +578,7 @@ client.on('messageCreate', async (message) => {
                 discordName = list[1];
                 // get all member
                 let members = await message.guild?.members.fetch();
-                let memberFind = members?.find((member) => member.user.tag === discordName);
+                let memberFind = members?.find((member) => member.user.id === discordName);
 
                 if(!memberFind){
                     message.channel.send("L'utilisateur n'existe pas !");
@@ -639,12 +649,12 @@ client.on("guildMemberAdd", (member) => {
 client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
         let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
-        await debugChannel.send("-" + message.member?.user.tag + "- Rapport en cours de traitement");
+        await debugChannel.send("- <@" + message.member?.user.id + "> - Rapport en cours de traitement");
         let data = await authorize().then(getData).catch(console.error);
-        await debugChannel.send("-" + message.member?.user.tag + "- Data récupéré");
+        await debugChannel.send("- <@" + message.member?.user.id + "> - Data récupéré");
         let msg = "";
         data.forEach((row: any) => {
-            if (row[0] === message.member?.user.tag) {
+            if (row[0] === message.member?.user.id) {
                 let pointToRemove = 0
                 for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
                     if (row[i] != 'X') {
@@ -677,17 +687,17 @@ client.on('messageCreate', async (message) => {
                     }
                 }
                 let totalPoint = parseInt(row[7]) - pointToRemove;
-                msg = msg + "PseudoRL : " + row[1] + "\nPrenom : " + row[2] + "\nNom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + totalPoint + "\n";
+                msg = msg + "PseudoRL : " + row[1] + "\nNom : " + row[2] + "\nPrenom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + totalPoint + "\n";
             }
         })
-        await debugChannel.send("-" + message.member?.user.tag + "- Message créer");
+        await debugChannel.send("- <@" + message.member?.user.id + "> - Message créer");
         if(msg === ""){
-            await message.member?.send("Un problème est survenu, veuillez contacter Sn0w#7505\n Si vous avez récement changer votre tag discord, signalé(e) le moi :) ").catch(console.error);
-            await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé (erreur)");
+            await message.member?.send("Un problème est survenu, veuillez contacter <@210066772483637248>").catch(console.error);
+            await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé (erreur)");
             return;
         }else {
             await message.member?.send(msg).catch(console.error);
-            await debugChannel.send("-" + message.member?.user.tag + "- Message envoyé");
+            await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé");
         }
     }else if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
 
