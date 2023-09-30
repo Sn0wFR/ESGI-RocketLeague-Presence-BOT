@@ -656,6 +656,7 @@ client.on('messageCreate', async (message) => {
         data.forEach((row: any) => {
             if (row[0] === message.member?.user.id) {
                 let pointToRemove = 0
+                /*
                 for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
                     if (row[i] != 'X') {
                         let l = row[i]
@@ -686,6 +687,7 @@ client.on('messageCreate', async (message) => {
                         pointToRemove = pointToRemove + 1; //participation before second semester
                     }
                 }
+                */
                 let totalPoint = parseInt(row[7]) - pointToRemove;
                 msg = msg + "PseudoRL : " + row[1] + "\nNom : " + row[2] + "\nPrenom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + totalPoint + "\n";
             }
