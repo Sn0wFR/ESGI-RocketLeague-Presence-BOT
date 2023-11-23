@@ -1,4 +1,6 @@
 import {config} from "dotenv";
+import { promises as fsPromises } from 'fs';
+import { join } from 'path';
 
 config();
 
@@ -117,36 +119,63 @@ async function saveCredentials(client: any) {
  *
  */
 async function authorize() {
-    let client = await loadSavedCredentialsIfExist();
-    if (client) {
+    try {
+        console.log("1?????????");
+        let client = await loadSavedCredentialsIfExist();
+        if (client) {
+            return client;
+        }
+        let hasGet = false;
+        setInterval(()=> {
+            if(!hasGet){
+                return "ERR";
+            }
+        }, 25000);
+        console.log("2?????????");
+        client = await authenticate({
+            scopes: SCOPES,
+            keyfilePath: CREDENTIALS_PATH,
+        });
+        console.log("3?????????");
+        if (client.credentials) {
+            hasGet = true;
+            await saveCredentials(client);
+        }else{
+            console.log("x?????????");
+        }
         return client;
+    } catch (error) {
+        return "ERR";
     }
-    client = await authenticate({
-        scopes: SCOPES,
-        keyfilePath: CREDENTIALS_PATH,
-    });
-    if (client.credentials) {
-        await saveCredentials(client);
-    }
-    return client;
+    
 }
 
 
 async function getData(auth: any) {
-    const sheets = google.sheets({version: 'v4', auth});
+    try {
+        console.log(auth);
+        if(auth == "ERR")
+        {
+            return "ERR";
+        }
+        const sheets = google.sheets({version: 'v4', auth});
 
-    const res = await sheets.spreadsheets.values.get({
-        //spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
-        //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
-        spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
-        range: 'Sheet1',
-    });
-    const rows = res.data.values;
-    if (!rows || rows.length === 0) {
-        console.log('No data found.');
-        return;
+        const res = await sheets.spreadsheets.values.get({
+            //spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
+            //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
+            spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
+            range: 'Sheet1',
+        });
+        const rows = res.data.values;
+        if (!rows || rows.length === 0) {
+            console.log('No data found.');
+            return;
+        }
+        return rows;
+    } catch (error) {
+        return "ERR";
     }
-    return rows;
+    
 }
 
 async function sendData(auth: any) {
@@ -447,8 +476,65 @@ client.on('messageCreate', (message) => {
 
 client.on('messageCreate', async (message) => {
     if (message.content === '?export' && !status && message.channel.id === txtChannel) {
+        let sheetData: any;
+        console.log("arfg");
+        try {
+            console.log("?");
+            
+            //sheetData = await authorize().then(getData);
+            //TODO: REMOVE
+            throw("ERR");
+            console.log("!");
+        } catch (error) {
+
+            const padTo2Digits = (num: number) => {
+                return num.toString().padStart(2, '0');
+            }
+              
+            const formatDate = (date: Date) => {
+                return [
+                    padTo2Digits(date.getDate()),
+                    padTo2Digits(date.getMonth() + 1),
+                    date.getFullYear(),
+                ].join('/');
+            }
+              
+
+            let fileName = formatDate(new Date()).substring(0,2);
+            fileName = fileName + formatDate(new Date()).substring(3,5);
+            fileName = fileName + "_total.json";
+            console.log(fileName);
+
+            let data = "";
+
+            total.forEach((value, key) => {
+                
+                data += key + " : " + value + "\n";
+            });
+            if (data !== "") {
+                message.channel.send(data);
+            }
+
+            try {
+                await fsPromises.writeFile(join("./", fileName), data, {
+                    flag: 'w',
+                });
+
+                if(total.size == 0){
+                    throw("total is empty");
+                }
+
+                message.channel.send("token in default, total dumped in a file for next attempt (another fail will rewrite the file) ");
+            } catch (error: any) {
+                message.channel.send(error);
+                console.log(error);
+                return;
+            }
+
+            return;
+        }
+
         message.channel.send("OK !");
-        let sheetData = await authorize().then(getData).catch(console.error);
 
         let infoRow = sheetData[0];
 
@@ -475,6 +561,106 @@ client.on('messageCreate', async (message) => {
         }
 
         infoRow[rowCount] = dateValue;
+
+        //HERE 
+
+        let pathTab = [];
+            const paths = await fsPromises.readdir("./", { withFileTypes: true});
+            for(const p of paths) {
+                if(!p.isDirectory() && (p.name.startsWith("23") || p.name.startsWith("24")) ) {
+                    console.log("found: " + p.name);
+                    const tmpStr = "./" + p.name;
+                    
+                    console.log("tmpStr :" + tmpStr );
+                    pathTab.push(tmpStr);
+                }
+            }
+
+            if (pathTab.length != 0){
+                for(const p of pathTab) {
+                    const fs = require('fs');
+                    const readline = require('readline');
+                    const rl = readline.createInterface({
+                        input: fs.createReadStream(p),
+                        crlfDelay: Infinity,
+                    });
+                
+                    let dumpTotal: Map<string, number> = new Map<string, number>();
+                    rl.on('line', (line: string) => {
+                        let key = line.split(" : ")[0];
+                        console.log("key: " + key);
+                        let value = parseInt(line.split(" : ")[1]);
+                        console.log("value: " + value);
+                        dumpTotal.set(key, value);
+                    });
+    
+                    await new Promise((res) => rl.once('close', res));
+    
+                    console.log(dumpTotal);
+    
+                    infoRow[rowCount] = p.substring(0,2) + "/" + p.substring(2,4);
+
+                    dumpTotal.forEach((value, key) => {
+                        sheetData.forEach((row: any) => {
+                            if(row[0] === key){
+                                console.log("entered");
+                                let calc: number = 0
+                                let actual: string = row[6];
+                                let aDay = actual.substring(0, actual.indexOf("j"));
+                                calc = calc + (parseInt(aDay) * 24 * 60 * 60 * 1000);
+            
+                                let aHour = actual.substring(actual.indexOf("j")+2, actual.indexOf("h"));
+                                calc = calc + (parseInt(aHour) * 60 * 60 * 1000);
+            
+                                let aMinute = actual.substring(actual.indexOf("h")+2, actual.indexOf("m"));
+                                calc = calc + (parseInt(aMinute) * 60 * 1000);
+            
+                                let aSecond = actual.substring(actual.indexOf("m")+2, actual.indexOf("s"));
+                                calc = calc + (parseInt(aSecond) * 1000);
+            
+                                let ms = calc + value;
+                                let days = Math.floor(ms / (24*60*60*1000));
+                                let daysms = ms % (24*60*60*1000);
+                                let hours = Math.floor(daysms / (60*60*1000));
+                                let hoursms = ms % (60*60*1000);
+                                let minutes = Math.floor(hoursms / (60*1000));
+                                let minutesms = ms % (60*1000);
+                                let sec = Math.floor(minutesms / 1000);
+                                row[6] = days + "j " + hours + "h " + minutes + "m " + sec + "s";
+            
+                                let msV = value;
+                                let daysV = Math.floor(msV / (24*60*60*1000));
+                                let daysmsV = msV % (24*60*60*1000);
+                                let hoursV = Math.floor(daysmsV / (60*60*1000));
+                                let hoursmsV = msV % (60*60*1000);
+                                let minutesV = Math.floor(hoursmsV / (60*1000));
+                                let minutesmsV = msV % (60*1000);
+                                let secV = Math.floor(minutesmsV / 1000);
+            
+            
+                                if (hoursV > 0 || minutesV >= minimalTime){
+                                    row[7] = parseInt(row[7]) + 1;
+                                }
+                                row.push(hoursV + "h " + minutesV + "m " + secV + "s");
+            
+                            }
+                        })
+                    })
+
+                    sheetData.forEach((row: any) => {
+                        if (!row[rowCount]){
+                            row.push("X");
+                        }
+                    })
+            
+                    dataValue = sheetData;
+            
+                    authorize().then(sendData);
+                }
+            }
+
+        infoRow[rowCount] = dateValue;
+            
 
         total.forEach((value, key) => {
             sheetData.forEach((row: any) => {
@@ -548,8 +734,15 @@ client.on('messageCreate', async (message) => {
         let classe = "";
         let mail = "";
         let userName = "";
-        let data = await authorize().then(getData).catch(console.error);
         let check = true;
+        //let data = await authorize().then(getData).catch(console.error);
+        //TODO: REMOVE
+
+        let data: any;
+         if(!data){
+            message.channel.send("erreur, essayé ultérieurment");
+            return;
+         }
 
         if(message.content.startsWith('?inscription')) {
             if (msg.split(' ').length === 6) {
@@ -648,11 +841,21 @@ client.on("guildMemberAdd", (member) => {
 
 client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
+
         let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
         await debugChannel.send("- <@" + message.member?.user.id + "> - Rapport en cours de traitement");
-        let data = await authorize().then(getData).catch(console.error);
+        let data: any;
+        try {
+            //data = await authorize().then(getData).catch(console.error);
+            //TODO: REMOVE
+            throw("ERR");
+        } catch (error) {
+            message.channel.send("l'envoie de rapport est indisponible, réessayé ultérieurement ");
+            return;
+        }
         await debugChannel.send("- <@" + message.member?.user.id + "> - Data récupéré");
         let msg = "";
+
         data.forEach((row: any) => {
             if (row[0] === message.member?.user.id) {
                 let pointToRemove = 0
@@ -707,8 +910,11 @@ client.on('messageCreate', async (message) => {
         
 
         //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
-        let data = await authorize().then(getData).catch(console.error);
-
+        //let data = await authorize().then(getData).catch(console.error);
+        //TODO: REMOVE
+        let data: any;
+        message.channel.send("erreur token");
+        return;
         console.log("get data");
         
         let msg1I = "Nom;Prenom;Classe;Point";
