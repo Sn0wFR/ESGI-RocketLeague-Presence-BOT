@@ -481,10 +481,10 @@ client.on('messageCreate', async (message) => {
         try {
             console.log("?");
             
-            //sheetData = await authorize().then(getData);
+            sheetData = await authorize().then(getData);
             //TODO: REMOVE
-            throw("ERR");
-            console.log("!");
+            //throw("ERR");
+            //console.log("!");
         } catch (error) {
 
             const padTo2Digits = (num: number) => {
@@ -655,8 +655,12 @@ client.on('messageCreate', async (message) => {
             
                     dataValue = sheetData;
             
-                    authorize().then(sendData);
+                    await authorize().then(sendData);
                 }
+
+                message.channel.send("replay Ok !");
+                return;
+
             }
 
         infoRow[rowCount] = dateValue;
@@ -735,10 +739,10 @@ client.on('messageCreate', async (message) => {
         let mail = "";
         let userName = "";
         let check = true;
-        //let data = await authorize().then(getData).catch(console.error);
+        let data: any;
+        data = await authorize().then(getData).catch(console.error);
         //TODO: REMOVE
 
-        let data: any;
          if(!data){
             message.channel.send("erreur, essayé ultérieurment");
             return;
@@ -846,9 +850,9 @@ client.on('messageCreate', async (message) => {
         await debugChannel.send("- <@" + message.member?.user.id + "> - Rapport en cours de traitement");
         let data: any;
         try {
-            //data = await authorize().then(getData).catch(console.error);
+            data = await authorize().then(getData).catch(console.error);
             //TODO: REMOVE
-            throw("ERR");
+            //throw("ERR");
         } catch (error) {
             message.channel.send("l'envoie de rapport est indisponible, réessayé ultérieurement ");
             return;
@@ -910,9 +914,9 @@ client.on('messageCreate', async (message) => {
         
 
         //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
-        //let data = await authorize().then(getData).catch(console.error);
-        //TODO: REMOVE
         let data: any;
+        data = await authorize().then(getData).catch(console.error);
+        //TODO: REMOVE
         message.channel.send("erreur token");
         return;
         console.log("get data");
