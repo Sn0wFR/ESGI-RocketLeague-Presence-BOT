@@ -1,5 +1,4 @@
 import {config} from "dotenv";
-
 config();
 
 import {
@@ -12,15 +11,48 @@ import {
     PartialMessageReaction, PartialUser, TextChannel,
     User,
     VoiceChannel,
-    VoiceState
+    VoiceState,
 } from 'discord.js';
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS]});
 const token = process.env.TOKEN;
 console.log(token);
 
+import fs from 'fs';
+
+interface PlayerData {
+    discord: string;
+    pseudoRL: string;
+    nom: string;
+    prenom: string;
+    classe: string;
+    mailMyges: string;
+    tempsDeJeu: string;
+    point: number;
+    dates: Record<string, string>; // Clé = Date, Valeur = valeur de la colonne correspondante
+}
+
+function savePlayersToFile(playersInfo: Map<string ,PlayerData>, filePath: string) {
+    const players: PlayerData[] = [];
+    playersInfo.forEach((player) => {
+        players.push(player);
+    });
+    fs.writeFileSync(filePath, JSON.stringify(players, null, 2));
+}
+  
+function loadPlayersFromFile(filePath: string): PlayerData[] {
+    const data = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(data) as PlayerData[];
+}
+
+let playersFromFile = loadPlayersFromFile("./data.json");
+let playersInfo: Map<string, PlayerData> = new Map<string, PlayerData>();
+playersFromFile.forEach((player) => {
+    playersInfo.set(player.discord, player);
+});
+
 let msgReactId: string = "";
 
-const minimalTime: number = 30;
+const minimalTime: number = 1;
 
 let playerPresence: Map<string, number>; // <id, timestamp>
 
@@ -40,7 +72,7 @@ if(process.env.ID_CHANNEL_TXT) {
 let voiceChannel: string[] = [];
 if(process.env.ID_CHANNEL_VOICE) {
     voiceChannel = process.env.ID_CHANNEL_VOICE.split(" "); // channel where the bot will play the music
-    console.log(voiceChannel);
+    console.log("voiceChannel: " + voiceChannel);
 }
 
 let inscriptionChannel: string = "";
@@ -60,120 +92,9 @@ if(process.env.ID_CHANNEL_LOG_RAPPORT) {
 
 let saveTotal: Map<string, number>; // <id, totalPresence>
 
-let dataValue: String[][];
 
 
-const fs = require('fs').promises;
 const path = require('path');
-const {authenticate} = require('@google-cloud/local-auth');
-const {google} = require('googleapis');
-
-// If modifying these scopes, delete token.json.
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-// The file token.json stores the user's access and refresh tokens, and is
-// created automatically when the authorization flow completes for the first
-// time.
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-//const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials_sheets.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'myCred.json');
-
-
-/**
- * Reads previously authorized credentials from the save file.
- *
- * @return {Promise<OAuth2Client|null>}
- */
-async function loadSavedCredentialsIfExist() {
-    try {
-        const content = await fs.readFile(TOKEN_PATH);
-        const credentials = JSON.parse(content);
-        return google.auth.fromJSON(credentials);
-    } catch (err) {
-        return null;
-    }
-}
-
-/**
- * Serializes credentials to a file comptible with GoogleAUth.fromJSON.
- *
- * @param {OAuth2Client} client
- * @return {Promise<void>}
- */
-async function saveCredentials(client: any) {
-    const content = await fs.readFile(CREDENTIALS_PATH);
-    const keys = JSON.parse(content);
-    const key = keys.installed || keys.web;
-    const payload = JSON.stringify({
-        type: 'authorized_user',
-        client_id: key.client_id,
-        client_secret: key.client_secret,
-        refresh_token: client.credentials.refresh_token,
-    });
-    await fs.writeFile(TOKEN_PATH, payload);
-}
-
-/**
- * Load or request or authorization to call APIs.
- *
- */
-async function authorize() {
-    let client = await loadSavedCredentialsIfExist();
-    if (client) {
-        return client;
-    }
-    client = await authenticate({
-        scopes: SCOPES,
-        keyfilePath: CREDENTIALS_PATH,
-    });
-    if (client.credentials) {
-        await saveCredentials(client);
-    }
-    return client;
-}
-
-
-async function getData(auth: any) {
-    const sheets = google.sheets({version: 'v4', auth});
-
-    const res = await sheets.spreadsheets.values.get({
-        //spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
-        //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
-        spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
-        range: 'Sheet1',
-    });
-    const rows = res.data.values;
-    if (!rows || rows.length === 0) {
-        console.log('No data found.');
-        return;
-    }
-    return rows;
-}
-
-async function sendData(auth: any) {
-    const sheets = google.sheets({version: 'v4', auth});
-
-    const body = {
-        values: dataValue,
-    };
-
-    try {
-        sheets.spreadsheets.values.update({
-            //spreadsheetId: "1xQmaZz-QlSN9vSMBAE_o5PTvCG5FoFmTcAKA_PmxMgs",
-            spreadsheetId: "1bSWFyyCCbrT7kprNKa_c1vkvdKse6DnEFdUVRvntfzo",
-            range: 'Sheet1',
-            valueInputOption: 'RAW',
-            resource: body
-        }).then((response: any) => {
-            const result = response.data;
-            console.log(`${result.updatedCells} cells updated.`);
-            dataValue.splice(0);
-        });
-    } catch (err) {
-        console.log(err);
-        return;
-    }
-
-}
 
 client.once('ready', () => {
     console.log('Ready!');
@@ -363,6 +284,8 @@ client.on('messageCreate', async (message) => {
     if (message.content === '?total' && message.channel.id === txtChannel) {
         console.log("get total");
         let totalString = "";
+        console.log("status: " + status);
+        console.log("playerPresence.size: " + playerPresence.size);
         if (status && playerPresence.size > 0) {
             for (let [key, value] of playerPresence.entries()) {
                 if (total.has(key)) {
@@ -447,14 +370,104 @@ client.on('messageCreate', (message) => {
 
 client.on('messageCreate', async (message) => {
     if (message.content === '?export' && !status && message.channel.id === txtChannel) {
-        message.channel.send("OK !");
-        let sheetData = await authorize().then(getData).catch(console.error);
+
+        let dayDate = new Date();
+        let day = dayDate.getDate();
+        let month = dayDate.getMonth() + 1;
+        let dateValue = "";
+        if(day < 10){
+            dateValue = "0" + day;
+        }else{
+            dateValue = "" + day;
+        }
+
+        if(month < 10){
+            dateValue = dateValue + "/0" + month;
+        }else{
+            dateValue = dateValue + "/" + month;
+        }
+
+        total.forEach((value, key) => {
+            let player = playersInfo.get(key);
+
+            if(player === undefined){
+                message.channel.send("Probleme ! Le joueur <@" + key + "> n'est pas dans la liste de joueur inscrit, voici son temps de jeu (timestamp) : " + value);
+                return;
+            }
+            
+            
+            let calc: number = 0
+            let actual: string = player.tempsDeJeu;
+            let aDay = actual.substring(0, actual.indexOf("j"));
+            calc = calc + (parseInt(aDay) * 24 * 60 * 60 * 1000);
+
+            let aHour = actual.substring(actual.indexOf("j")+2, actual.indexOf("h"));
+            calc = calc + (parseInt(aHour) * 60 * 60 * 1000);
+
+            let aMinute = actual.substring(actual.indexOf("h")+2, actual.indexOf("m"));
+            calc = calc + (parseInt(aMinute) * 60 * 1000);
+
+            let aSecond = actual.substring(actual.indexOf("m")+2, actual.indexOf("s"));
+            calc = calc + (parseInt(aSecond) * 1000);
+
+            let ms = calc + value;
+            let days = Math.floor(ms / (24*60*60*1000));
+            let daysms = ms % (24*60*60*1000);
+            let hours = Math.floor(daysms / (60*60*1000));
+            let hoursms = ms % (60*60*1000);
+            let minutes = Math.floor(hoursms / (60*1000));
+            let minutesms = ms % (60*1000);
+            let sec = Math.floor(minutesms / 1000);
+            player.tempsDeJeu = days + "j " + hours + "h " + minutes + "m " + sec + "s";
+
+            let msV = value;
+            let daysV = Math.floor(msV / (24*60*60*1000));
+            let daysmsV = msV % (24*60*60*1000);
+            let hoursV = Math.floor(daysmsV / (60*60*1000));
+            let hoursmsV = msV % (60*60*1000);
+            let minutesV = Math.floor(hoursmsV / (60*1000));
+            let minutesmsV = msV % (60*1000);
+            let secV = Math.floor(minutesmsV / 1000);
+
+
+            if (hoursV > 0 || minutesV >= minimalTime){
+                player.point = player.point + 1;
+            }
+
+            player.dates[dateValue] = (hoursV + "h " + minutesV + "m " + secV + "s");
+            
+            playersInfo.set(key, player);
+        
+    
+        });
+
+        savePlayersToFile(playersInfo, "./data.json");
+
+        clearing();
+
+        message.channel.send("OK ! (Si l'export à été fait trop tôt, vous pouvez faire un ?total et recharger la dernière sauvegarde, ou importer la save générer)");
+        //sendFile
+        message.channel.send(
+            {
+                files: [
+                    {
+                        attachment: './data.json',
+                        name: 'export.json'
+                    }
+                ]
+            }
+        )
+
+
+        
+        /*
+        let sheetData = getData();
 
         let infoRow = sheetData[0];
 
         let rowCount: number = 0;
 
-        infoRow.forEach((value: any) => {
+        infoRow.forEach(() => {
             rowCount = rowCount + 1;
         })
 
@@ -531,9 +544,10 @@ client.on('messageCreate', async (message) => {
 
         dataValue = sheetData;
 
-        authorize().then(sendData);
+        sendData();
 
         clearing();
+        */
     }
 })
 
@@ -548,12 +562,23 @@ client.on('messageCreate', async (message) => {
         let classe = "";
         let mail = "";
         let userName = "";
-        let data = await authorize().then(getData).catch(console.error);
         let check = true;
+
+        let playerInfo: PlayerData = {
+            discord: "",
+            pseudoRL: "",
+            nom: "",
+            prenom: "",
+            classe: "",
+            mailMyges: "",
+            tempsDeJeu: "",
+            point: 0,
+            dates: {}
+        }
 
         if(message.content.startsWith('?inscription')) {
             if (msg.split(' ').length === 6) {
-                discordName = message.member?.user.id;
+                discordName = message.member!.user.id;
                 name = list[1];
                 lastName = list[2];
                 classe = list[3];
@@ -563,12 +588,20 @@ client.on('messageCreate', async (message) => {
                     return;
                 }
                 userName = list[5];
-                data.forEach((row: any) => {
-                    if (row[0] === discordName) {
-                        check = false;
-                        return;
-                    }
-                })
+
+                playerInfo = {
+                    discord: discordName,
+                    pseudoRL: userName,
+                    nom: name,
+                    prenom: lastName,
+                    classe: classe,
+                    mailMyges: mail,
+                    tempsDeJeu: "0j 0h 0m 0s",
+                    point: 0,
+                    dates: {}
+                };
+                
+
             } else {
                 message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription FERREIRA Mathieu 5AL mferreira30@myges.fr Sn0wFR) ");
                 return;
@@ -591,36 +624,41 @@ client.on('messageCreate', async (message) => {
                 classe = list[4];
                 mail = list[5];
                 userName = list[6];
-                data.forEach((row: any) => {
-                    if (row[0] === discordName) {
-                        check = false;
-                        return;
-                    }
-                })
+
+                playerInfo = {
+                    discord: discordName,
+                    pseudoRL: userName,
+                    nom: name,
+                    prenom: lastName,
+                    classe: classe,
+                    mailMyges: mail,
+                    tempsDeJeu: "0j 0h 0m 0s",
+                    point: 0,
+                    dates: {}
+                };
+
             }
         }
 
+        for (const playerId of playersInfo.keys()) {
+            if (playerId === discordName) {
+                check = false;
+                break;
+            }
+        }
+
+
         if (!check){
-            message.channel.send("<@" + member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter Sn0w#7505");
+            message.channel.send("<@" + member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter <@210066772483637248>");
             return;
         }
 
-        let value = [discordName, userName, name, lastName, classe, mail, '0j 0h 0m 0s', '0'];
 
-        let rowInfo = data[0];
-        let countInfo: number = 0;
-        rowInfo.forEach((info: any) => {
-            countInfo = countInfo + 1;
-        });
+        playersInfo.set(discordName, playerInfo);
+        
+        //write playersInfo data
+        savePlayersToFile(playersInfo, "./data.json");
 
-        for (let i = 8; i < countInfo; i++) {
-            value.push('X');
-        }
-
-        data.push(value);
-
-        dataValue = data
-        authorize().then(sendData);
 
         message.channel.send("<@" + member?.id + "> Vous êtes maintenant inscrit");
         let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
@@ -630,7 +668,7 @@ client.on('messageCreate', async (message) => {
             await member!.roles.remove(role2);
 
         }else{
-            message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter Sn0w#7505");
+            message.channel.send("Le role 'inscrit' ou 'nouveau' n'existe pas ou alors le membre à 'disparu' ??????, veuillez contacter <@210066772483637248>");
         }
 
     }
@@ -650,7 +688,7 @@ client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
         let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
         await debugChannel.send("- <@" + message.member?.user.id + "> - Rapport en cours de traitement");
-        let data = await authorize().then(getData).catch(console.error);
+        let data = [""]
         await debugChannel.send("- <@" + message.member?.user.id + "> - Data récupéré");
         let msg = "";
         data.forEach((row: any) => {
@@ -707,7 +745,7 @@ client.on('messageCreate', async (message) => {
         
 
         //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
-        let data = await authorize().then(getData).catch(console.error);
+        let data = [""]
 
         console.log("get data");
         
