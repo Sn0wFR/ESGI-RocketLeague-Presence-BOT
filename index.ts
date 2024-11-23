@@ -687,126 +687,88 @@ client.on("guildMemberAdd", (member) => {
 client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
         let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
-        await debugChannel.send("- <@" + message.member?.user.id + "> - Rapport en cours de traitement");
-        let data = [""]
-        await debugChannel.send("- <@" + message.member?.user.id + "> - Data récupéré");
+        let id: string = message.member!.user.id;
+        await debugChannel.send("- <@" + id + "> - Rapport en cours de traitement");
         let msg = "";
-        data.forEach((row: any) => {
-            if (row[0] === message.member?.user.id) {
-                let pointToRemove = 0
-                /*
-                for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
-                    if (row[i] != 'X') {
-                        let l = row[i]
-                        console.log("la ligne =:" + l)
-                        if (l == undefined){
-                            continue;
-                        }
-                        let lh = l.substring(0, l.indexOf('h')+1);
-                        console.log("lh: " + lh)
-                        let lm = l.substring(l.indexOf('h')+2, l.indexOf('m')+1);
-                        console.log("lm: " + lm)
 
-                        if (lh.length == 2) {
-                            if (parseInt(lh.substring(0, 1)) == 0) {
-                                if (lm.length == 2) {
-                                    console.log("skipped 1 ");
-                                    continue;
-                                } else {
-                                    if (parseInt(lm.substring(0, 2)) < 30) {
-                                        console.log("skipped 2 ");
-
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                        console.log(row[i]);
-                        pointToRemove = pointToRemove + 1; //participation before second semester
-                    }
-                }
-                */
-                let totalPoint = parseInt(row[7]) - pointToRemove;
-                msg = msg + "PseudoRL : " + row[1] + "\nNom : " + row[2] + "\nPrenom : " + row[3] + "\nClasse : " + row[4] + "\nMail MyGES : " + row[5] + "\nTemps de jeu : " + row[6] + "\nPoint : " + totalPoint + "\n";
-            }
-        })
-        await debugChannel.send("- <@" + message.member?.user.id + "> - Message créer");
-        if(msg === ""){
-            await message.member?.send("Un problème est survenu, veuillez contacter <@210066772483637248>").catch(console.error);
-            await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé (erreur)");
-            return;
-        }else {
-            await message.member?.send(msg).catch(console.error);
-            await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé");
+        let playerInfo: PlayerData | undefined = playersInfo.get(id);
+        if(playerInfo === undefined){
+            await debugChannel.send("- <@" + message.member?.user.id + "> - Info non trouvée, n'a pas participé aux sessions");
+            await message.member?.send("Info non trouvée, vous n'avez pas participé aux sessions").catch(console.error);
+        return;
         }
+        msg = msg + "PseudoRL : " + playerInfo.pseudoRL + "\nNom : " + playerInfo.nom + "\nPrenom : " + playerInfo.prenom + "\nClasse : " + playerInfo.classe + "\nMail MyGES : " + playerInfo.mailMyges + "\nTemps de jeu : " + playerInfo.tempsDeJeu + "\nPoint : " + playerInfo.point + "\n";
+
+        await message.member?.send(msg).catch(console.error);
+        await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé");
     }else if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel){
 
-        console.log("sendOPENrapport");
+        // console.log("sendOPENrapport");
         
 
-        //get lastname[2], name[3], classe[4], point[7] and export it in csvFile
-        let data = [""]
+        // get lastname[2], name[3], classe[4], point[7] and export it in csvFile
+        // let data = [""]
 
-        console.log("get data");
+        // console.log("get data");
         
-        let msg1I = "Nom;Prenom;Classe;Point";
-        let msgOther = "Nom;Prenom;Classe;Point";
+        // let msg1I = "Nom;Prenom;Classe;Point";
+        // let msgOther = "Nom;Prenom;Classe;Point";
 
 
-        data.forEach((row: string) => {
+        // data.forEach((row: string) => {
 
-            if(!row[4].startsWith('1PPA')){
-                let pointToRemove = 0
-                for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
-                    if (row[i] != 'X') {
-                        let l = row[i]
-                        console.log("la ligne =:" + l)
-                        if (l == undefined){
-                            continue;
-                        }
-                        let lh = l.substring(0, l.indexOf('h')+1);
-                        console.log("lh: " + lh)
-                        let lm = l.substring(l.indexOf('h')+2, l.indexOf('m')+1);
-                        console.log("lm: " + lm)
+        //     if(!row[4].startsWith('1PPA')){
+        //         let pointToRemove = 0
+        //         for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
+        //             if (row[i] != 'X') {
+        //                 let l = row[i]
+        //                 console.log("la ligne =:" + l)
+        //                 if (l == undefined){
+        //                     continue;
+        //                 }
+        //                 let lh = l.substring(0, l.indexOf('h')+1);
+        //                 console.log("lh: " + lh)
+        //                 let lm = l.substring(l.indexOf('h')+2, l.indexOf('m')+1);
+        //                 console.log("lm: " + lm)
 
-                        if (lh.length == 2) {
-                            if (parseInt(lh.substring(0, 1)) == 0) {
-                                if (lm.length == 2) {
-                                    console.log("skipped 1 ");
-                                    continue;
-                                } else {
-                                    if (parseInt(lm.substring(0, 2)) < 30) {
-                                        console.log("skipped 2 ");
+        //                 if (lh.length == 2) {
+        //                     if (parseInt(lh.substring(0, 1)) == 0) {
+        //                         if (lm.length == 2) {
+        //                             console.log("skipped 1 ");
+        //                             continue;
+        //                         } else {
+        //                             if (parseInt(lm.substring(0, 2)) < 30) {
+        //                                 console.log("skipped 2 ");
 
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                        console.log(row[i]);
-                        pointToRemove = pointToRemove + 1; //participation before second semester
-                    }
-                }
-                let totalPoint = parseInt(row[7]) - pointToRemove;
+        //                                 continue;
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //                 console.log(row[i]);
+        //                 pointToRemove = pointToRemove + 1; //participation before second semester
+        //             }
+        //         }
+        //         let totalPoint = parseInt(row[7]) - pointToRemove;
 
-                if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
-                    msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
-                }else{
-                    msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
-                }
-            }
+        //         if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
+        //             msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
+        //         }else{
+        //             msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
+        //         }
+        //     }
 
             
-        });
+        // });
 
-        console.log("created msg");
+        // console.log("created msg");
 
-        let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I2I.csv");
-        let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
+        // let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I2I.csv");
+        // let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
 
-        console.log("created file");
+        // console.log("created file");
 
-        await message.channel.send({files: [file1I, fileOther]});
+        // await message.channel.send({files: [file1I, fileOther]});
 
     }
 })
