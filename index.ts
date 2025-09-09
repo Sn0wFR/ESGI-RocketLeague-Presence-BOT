@@ -7,18 +7,20 @@ import {
   GuildMember,
   Intents,
   MessageReaction,
-  PartialMessageReaction, PartialUser, TextChannel,
+  PartialMessageReaction, 
+  PartialUser, 
+  TextChannel,
   User,
   VoiceChannel,
   VoiceState,
-} from 'discord.js';
+} from "discord.js";
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const token = process.env.TOKEN;
 if (!token) {
   throw new Error("TOKEN manquant dans les variables d'environnement");
 }
 
-import fs from 'fs';
+import fs from "fs";
 
 interface PlayerData {
   discord: string;
@@ -32,18 +34,33 @@ interface PlayerData {
   dates: Record<string, string>; // Clé = Date, Valeur = valeur de la colonne correspondante
 }
 
-const cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport"]
+const cmdList: string[] = [
+  "?help", 
+  "?status", 
+  "?start", 
+  "?stop", 
+  "?total", 
+  "?clear", 
+  "?export", 
+  "?inscription", 
+  "?adminInscription", 
+  "?sendRapport", 
+  "?sendOPENrapport"
+]; // list of commands
 
 /**
  * Saves all player data to a JSON file.
  *
  * Serializes the provided player data map into an array and writes it to the specified file path in JSON format.
  */
-function savePlayersToFile(playersInfo: Map<string, PlayerData>, filePath: string) {
+function savePlayersToFile(
+  playersInfo: Map<string, PlayerData>, 
+  filePath: string
+) {
   const players = Array.from(playersInfo.values());
   const tmp = `${filePath}.tmp`;
   try {
-    fs.writeFileSync(tmp, JSON.stringify(players, null, 2), 'utf8');
+    fs.writeFileSync(tmp, JSON.stringify(players, null, 2), "utf8");
     fs.renameSync(tmp, filePath);
   } catch (err) {
     try {
@@ -62,7 +79,7 @@ function savePlayersToFile(playersInfo: Map<string, PlayerData>, filePath: strin
 function loadPlayersFromFile(filePath: string): PlayerData[] {
   try {
     if (!fs.existsSync(filePath)) return [];
-    const data = fs.readFileSync(filePath, 'utf8');
+    const data = fs.readFileSync(filePath, "utf8");
     const parsed = JSON.parse(data);
     return Array.isArray(parsed) ? parsed as PlayerData[] : [];
   } catch (err) {
@@ -116,12 +133,10 @@ if (process.env.ID_CHANNEL_LOG_RAPPORT) {
 
 let saveTotal: Map<string, number>; // <id, totalPresence>
 
+const path = require("path");
 
-
-const path = require('path');
-
-client.once('ready', () => {
-  console.log('Ready!');
+client.once("ready", () => {
+  console.log("Ready!");
   playerPresence = new Map<string, number>();
   total = new Map<string, number>();
   saveTotal = new Map<string, number>();
@@ -129,14 +144,20 @@ client.once('ready', () => {
 
 client.login(token).then(r => { });
 
-
-
-client.on('voiceStateUpdate', (oldState: VoiceState, newState: VoiceState) => {
+client.on("voiceStateUpdate", (oldState: VoiceState, newState: VoiceState) => {
   if (status) {
     if (newState) {
-      if (newState.channelId && voiceChannel.includes(newState.channelId) && newState.member) {
+      if (
+        newState.channelId && 
+        voiceChannel.includes(newState.channelId) && 
+        newState.member
+      ) {
         startUserCount(newState);
-      } else if (oldState.channelId && voiceChannel.includes(oldState.channelId) && oldState.member) {
+      } else if (
+        oldState.channelId && 
+        voiceChannel.includes(oldState.channelId) && 
+        oldState.member
+      ) {
         endUserCount(oldState);
       }
     }
@@ -183,10 +204,13 @@ function endUserCount(oldState: any) {
   }
 }
 
-client.on('messageCreate', async (message) => {
-  if (message && message.content === '?resetRolesAll' && message.channel.id === txtChannel) {
+client.on("messageCreate", async (message) => {
+  if (message && message.content === "?resetRolesAll" && message.channel.id === txtChannel) {
     // Permission gate: only administrators or role managers may run this  
-    if (!message.member?.permissions.has("ADMINISTRATOR") && !message.member?.permissions.has("MANAGE_ROLES")) {
+    if (
+      !message.member?.permissions.has("ADMINISTRATOR") && 
+      !message.member?.permissions.has("MANAGE_ROLES")
+    ) {
       return void message.reply("Vous n'avez pas la permission d'exécuter cette commande.");
     }
 
@@ -194,7 +218,9 @@ client.on('messageCreate', async (message) => {
     let role = message.guild?.roles.cache.find((r) => r.name === "inscrit");
     let role2 = message.guild?.roles.cache.find((r) => r.name === "nouveau");
     if (!role || !role2) {
-      return void message.channel.send("Les rôles 'inscrit' et/ou 'nouveau' sont introuvables.");
+      return void message.channel.send(
+        "Les rôles 'inscrit' et/ou 'nouveau' sont introuvables."
+      );
     }
 
     if (message.guild) {
@@ -220,11 +246,10 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-
-client.on('messageCreate', (message) => {
-  if (message.content === '?start' && message.channel.id === txtChannel) {
+client.on("messageCreate", (message) => {
+  if (message.content === "?start" && message.channel.id === txtChannel) {
     if (status) {
-      message.channel.send('Bot is already looking');
+      message.channel.send("Bot is already looking");
       return;
     }
     console.log("start");
@@ -244,21 +269,21 @@ client.on('messageCreate', (message) => {
       }
     })
 
-    message.channel.send('Bot is now looking');
-  } else if (message.content === '?status' && message.channel.id === txtChannel) {
+    message.channel.send("Bot is now looking");
+  } else if (message.content === "?status" && message.channel.id === txtChannel) {
     console.log("status");
     if (status) {
-      message.channel.send('Bot is currently looking');
+      message.channel.send("Bot is currently looking");
     } else {
-      message.channel.send('Bot is not looking');
+      message.channel.send("Bot is not looking");
     }
   }
 })
 
-client.on('messageCreate', (message) => {
-  if (message.content === '?stop' && message.channel.id === txtChannel) {
+client.on("messageCreate", (message) => {
+  if (message.content === "?stop" && message.channel.id === txtChannel) {
     if (!status) {
-      message.channel.send('Bot is not looking');
+      message.channel.send("Bot is not looking");
       return;
     }
     console.log("stop");
@@ -289,12 +314,7 @@ client.on('messageCreate', (message) => {
       }
     })
 
-
-
-
     /*
-
-
     playerPresence.forEach((v, k, map) => {
         let res: number = v;
         if(total && total.get(k) !== undefined){
@@ -304,10 +324,9 @@ client.on('messageCreate', (message) => {
         total.set(k, res);
     })*/
 
-    message.channel.send('Bot is not looking anymore');
+    message.channel.send("Bot is not looking anymore");
   }
 })
-
 
 function loadSave() {
 
@@ -319,13 +338,14 @@ function loadSave() {
   saveTotal.clear();
 }
 
-
-
-
 client.on("messageReactionAdd", async (reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) => {
   let msg = reaction.message;
   if (msg.id === msgReactId) {
-    if (reaction.emoji.name === "✅" && reaction.count && reaction.count > 1) {
+    if (
+      reaction.emoji.name === "✅" && 
+      reaction.count && 
+      reaction.count > 1
+    ) {
       loadSave();
       await msg.delete().then(r => { });
       msg.channel.send("Chargment effectuer");
@@ -335,8 +355,8 @@ client.on("messageReactionAdd", async (reaction: MessageReaction | PartialMessag
   }
 })
 
-client.on('messageCreate', async (message) => {
-  if (message.content === '?total' && message.channel.id === txtChannel) {
+client.on("messageCreate", async (message) => {
+  if (message.content === "?total" && message.channel.id === txtChannel) {
     console.log("get total");
     let totalString = "";
     console.log("status: " + status);
@@ -360,12 +380,11 @@ client.on('messageCreate', async (message) => {
 
         await message.channel.send("Voulez vous charger la dernière sauvegarde ?").then((value) => {
           msgReactId = value.id;
-          value.react('✅');
-          value.react('❎');
+          value.react("✅");
+          value.react("❎");
         });
 
         console.log(msgReactId);
-
 
         /*TODO message qui demande si l'on veut charger la save
         * repondre par des reaction a ce message
@@ -373,7 +392,6 @@ client.on('messageCreate', async (message) => {
         * si l'id correspon on check la reaction
         * puis on agit
         */
-
 
       } else {
         message.channel.send("Pas de sauvegarde trouvée");
@@ -402,29 +420,29 @@ function clearing() {
   total.clear();
 }
 
-client.on('messageCreate', (message) => {
-  if (message.content === '?clear' && message.channel.id === txtChannel) {
+client.on("messageCreate", (message) => {
+  if (message.content === "?clear" && message.channel.id === txtChannel) {
     clearing();
 
   }
 })
 
-client.on('messageCreate', (message) => {
-  if (message.content === '?help' && message.channel.id === txtChannel) {
+client.on("messageCreate", (message) => {
+  if (message.content === "?help" && message.channel.id === txtChannel) {
     console.log("help");
     message.channel.send("?start: démarre la recherche de joueurs\n?stop: arrête la recherche de joueurs\n?status: affiche le status de la recherche\n?total: affiche le total de présence de tous les joueurs\n?clear: supprime toutes les données\n?help: affiche ce message");
   }
 })
 
-client.on('messageCreate', (message) => {
+client.on("messageCreate", (message) => {
 
   if (message.content.startsWith("?") && !cmdList.includes(message.content) && message.channel.id === txtChannel && !message.author.bot) {
     message.channel.send("Commande inconnue !\n?start: démarre la recherche de joueurs\n?stop: arrête la recherche de joueurs\n?status: affiche le status de la recherche\n?total: affiche le total de présence de tous les joueurs\n?clear: supprime toutes les données\n?help: affiche ce message");
   }
 })
 
-client.on('messageCreate', async (message) => {
-  if (message.content === '?export' && !status && message.channel.id === txtChannel) {
+client.on("messageCreate", async (message) => {
+  if (message.content === "?export" && !status && message.channel.id === txtChannel) {
 
     let dayDate = new Date();
     let day = dayDate.getDate();
@@ -449,7 +467,6 @@ client.on('messageCreate', async (message) => {
         message.channel.send("Probleme ! Le joueur <@" + key + "> n'est pas dans la liste de joueur inscrit, voici son temps de jeu (timestamp) : " + value);
         return;
       }
-
 
       let calc: number = 0
       let actual: string = player.tempsDeJeu;
@@ -484,7 +501,6 @@ client.on('messageCreate', async (message) => {
       let minutesmsV = msV % (60 * 1000);
       let secV = Math.floor(minutesmsV / 1000);
 
-
       if (hoursV > 0 || minutesV >= minimalTime) {
         player.point = player.point + 1;
       }
@@ -492,7 +508,6 @@ client.on('messageCreate', async (message) => {
       player.dates[dateValue] = (hoursV + "h " + minutesV + "m " + secV + "s");
 
       playersInfo.set(key, player);
-
 
     });
 
@@ -506,14 +521,12 @@ client.on('messageCreate', async (message) => {
       {
         files: [
           {
-            attachment: './data.json',
-            name: 'export.json'
+            attachment: "./data.json",
+            name: "export.json"
           }
         ]
       }
     )
-
-
 
     /*
     let sheetData = getData();
@@ -606,11 +619,11 @@ client.on('messageCreate', async (message) => {
   }
 })
 
-client.on('messageCreate', async (message) => {
-  if ((message.content.startsWith('?inscription') || (message.content.startsWith('?adminInscription') && message.member?.user.id === "210066772483637248")) && message.channel.id === inscriptionChannel) {
+client.on("messageCreate", async (message) => {
+  if ((message.content.startsWith("?inscription") || (message.content.startsWith("?adminInscription") && message.member?.user.id === "210066772483637248")) && message.channel.id === inscriptionChannel) {
     let member = message.member;
     let msg = message.content;
-    let list = msg.split(' ');
+    let list = msg.split(" ");
     let discordName: string | undefined = "";
     let name = "";
     let lastName = "";
@@ -631,8 +644,8 @@ client.on('messageCreate', async (message) => {
       dates: {}
     }
 
-    if (message.content.startsWith('?inscription')) {
-      if (msg.split(' ').length === 6) {
+    if (message.content.startsWith("?inscription")) {
+      if (msg.split(" ").length === 6) {
         discordName = message.member!.user.id;
         name = list[1];
         lastName = list[2];
@@ -656,13 +669,12 @@ client.on('messageCreate', async (message) => {
           dates: {}
         };
 
-
       } else {
         message.channel.send("<@" + message.member?.id + "> Vous devez indiquer votre nom prenom classe mail_myges et pseudo RL. (ex: ?inscription FERREIRA Mathieu 5AL mferreira30@myges.fr Sn0wFR) ");
         return;
       }
-    } else if (message.content.startsWith('?adminInscription')) {
-      if (msg.split(' ').length === 7) {
+    } else if (message.content.startsWith("?adminInscription")) {
+      if (msg.split(" ").length === 7) {
         discordName = list[1];
         // get all member
         let members = await message.guild?.members.fetch();
@@ -702,18 +714,15 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-
     if (!check) {
       message.channel.send("<@" + member?.id + "> Vous êtes déjà inscrit, Si vous voyez ce message contacter <@210066772483637248>");
       return;
     }
 
-
     playersInfo.set(discordName, playerInfo);
 
     //write playersInfo data
     savePlayersToFile(playersInfo, "./data.json");
-
 
     message.channel.send("<@" + member?.id + "> Vous êtes maintenant inscrit");
     let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
@@ -739,8 +748,11 @@ client.on("guildMemberAdd", (member) => {
   console.log("fin")
 })
 
-client.on('messageCreate', async (message) => {
-  if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
+client.on("messageCreate", async (message) => {
+  if (
+    message.content.startsWith("?sendRapport") && 
+    message.channel.id === rapportChannel
+  ) {
     const debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel | undefined;
     if (!debugChannel) {
       return void message.reply("Canal de log (LOG_RAPPORT) introuvable.");
@@ -759,7 +771,7 @@ client.on('messageCreate', async (message) => {
 
     await message.member?.send(msg).catch(console.error);
     await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé");
-  } else if (message.content.startsWith('?sendOPENrapport') && message.channel.id === txtChannel) {
+  } else if (message.content.startsWith("?sendOPENrapport") && message.channel.id === txtChannel) {
 
     // console.log("sendOPENrapport");
 
