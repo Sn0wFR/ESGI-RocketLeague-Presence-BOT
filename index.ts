@@ -13,8 +13,10 @@ import {
     VoiceState,
 } from 'discord.js';
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS]});
-const token = process.env.TOKEN;
-console.log(token);
+const token = process.env.TOKEN;  
+if (!token) {  
+  throw new Error("TOKEN manquant dans les variables d'environnement");  
+}  
 
 import fs from 'fs';
 
@@ -30,18 +32,26 @@ interface PlayerData {
     dates: Record<string, string>; // Clé = Date, Valeur = valeur de la colonne correspondante
 }
 
+const cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport"]
+
 /**
  * Saves all player data to a JSON file.
  *
  * Serializes the provided player data map into an array and writes it to the specified file path in JSON format.
  */
-function savePlayersToFile(playersInfo: Map<string ,PlayerData>, filePath: string) {
-    const players: PlayerData[] = [];
-    playersInfo.forEach((player) => {
-        players.push(player);
-    });
-    fs.writeFileSync(filePath, JSON.stringify(players, null, 2));
-}
+function savePlayersToFile(playersInfo: Map<string, PlayerData>, filePath: string) {  
+    const players = Array.from(playersInfo.values());  
+    const tmp = `${filePath}.tmp`;  
+    try {  
+        fs.writeFileSync(tmp, JSON.stringify(players, null, 2), 'utf8');  
+        fs.renameSync(tmp, filePath);  
+    } catch (err) {  
+        try {  
+            if (fs.existsSync(tmp)) fs.unlinkSync(tmp);  
+        } catch {}  
+        console.error("Erreur de sauvegarde data.json:", err);  
+    }  
+}  
   
 /**
  * Loads player data from a JSON file and returns it as an array of PlayerData objects.
@@ -49,10 +59,17 @@ function savePlayersToFile(playersInfo: Map<string ,PlayerData>, filePath: strin
  * @param filePath - The path to the JSON file containing player data
  * @returns An array of PlayerData objects parsed from the file
  */
-function loadPlayersFromFile(filePath: string): PlayerData[] {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data) as PlayerData[];
-}
+function loadPlayersFromFile(filePath: string): PlayerData[] {  
+  try {  
+    if (!fs.existsSync(filePath)) return [];  
+    const data = fs.readFileSync(filePath, 'utf8');  
+    const parsed = JSON.parse(data);  
+    return Array.isArray(parsed) ? parsed as PlayerData[] : [];  
+  } catch (err) {  
+    console.error("Lecture data.json échouée, fallback []:", err);  
+    return [];  
+  }  
+}  
 
 let playersFromFile = loadPlayersFromFile("./data.json");
 let playersInfo: Map<string, PlayerData> = new Map<string, PlayerData>();
@@ -166,22 +183,43 @@ function endUserCount(oldState: any) {
     }
 }
 
-client.on('messageCreate', async (message) => {
-    if (message && message.content === '?resetRolesAll' && message.channel.id === txtChannel){
-        let role = message.guild?.roles.cache.find((role) => role.name === "inscrit");
-        let role2 = message.guild?.roles.cache.find((role) => role.name === "nouveau");
-        if (message && message.guild) {
-            let listMembers = await message.guild.members.fetch();
-            for (const [str, member] of listMembers.filter(m => !m.user.bot)) {
-                await member.roles.remove(role!);
-                await member.roles.add(role2!);
-            }
+client.on('messageCreate', async (message) => {  
+    if (message && message.content === '?resetRolesAll' && message.channel.id === txtChannel) {  
+        // Permission gate: only administrators or role managers may run this  
+        if (!message.member?.permissions.has("ADMINISTRATOR") && !message.member?.permissions.has("MANAGE_ROLES")) {  
+            return void message.reply("Vous n'avez pas la permission d'exécuter cette commande.");  
+        }  
 
-        }
+        // Look up the roles we need, bail out if one is missing  
+        let role = message.guild?.roles.cache.find((r) => r.name === "inscrit");  
+        let role2 = message.guild?.roles.cache.find((r) => r.name === "nouveau");  
+        if (!role || !role2) {  
+            return void message.channel.send("Les rôles 'inscrit' et/ou 'nouveau' sont introuvables.");  
+        }  
 
-        message.channel.send(`**${message.author.username}**, role **${role!.name}** was removed and role **${role2!.name}** was added to all members`);
-    }
-})
+        if (message.guild) {  
+            let listMembers = await message.guild.members.fetch();  
+            for (const [, member] of listMembers.filter(m => !m.user.bot)) {  
+                try {  
+                    // Only remove if they actually have it, only add if they don’t  
+                    if (member.roles.cache.has(role.id)) {  
+                        await member.roles.remove(role);  
+                    }  
+                    if (!member.roles.cache.has(role2.id)) {  
+                        await member.roles.add(role2);  
+                    }  
+                } catch (e) {  
+                    console.error(`Role swap failed for ${member.id}:`, e);  
+                }  
+            }  
+        }  
+
+        message.channel.send(  
+            `**${message.author.username}**, le rôle **${role.name}** a été retiré et le rôle **${role2.name}** ajouté à tous les membres.`  
+        );  
+    }  
+});  
+
 
 client.on('messageCreate', (message) => {
     if(message.content === '?start' && message.channel.id === txtChannel) {
@@ -703,10 +741,13 @@ client.on("guildMemberAdd", (member) => {
 
 client.on('messageCreate', async (message) => {
     if (message.content.startsWith('?sendRapport') && message.channel.id === rapportChannel) {
-        let debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel;
-        let id: string = message.member!.user.id;
-        await debugChannel.send("- <@" + id + "> - Rapport en cours de traitement");
-        let msg = "";
+        const debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel | undefined;  
+        if (!debugChannel) {  
+          return void message.reply("Canal de log (LOG_RAPPORT) introuvable.");  
+        }  
+        let id: string = message.member!.user.id;  
+        await debugChannel.send("- <@" + id + "> - Rapport en cours de traitement");  
+        let msg = "";  
 
         let playerInfo: PlayerData | undefined = playersInfo.get(id);
         if(playerInfo === undefined){
