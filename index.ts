@@ -31,6 +31,11 @@ interface PlayerData {
     dates: Record<string, string>; // Clé = Date, Valeur = valeur de la colonne correspondante
 }
 
+/**
+ * Saves all player data to a JSON file.
+ *
+ * Serializes the provided player data map into an array and writes it to the specified file path in JSON format.
+ */
 function savePlayersToFile(playersInfo: Map<string ,PlayerData>, filePath: string) {
     const players: PlayerData[] = [];
     playersInfo.forEach((player) => {
@@ -39,6 +44,12 @@ function savePlayersToFile(playersInfo: Map<string ,PlayerData>, filePath: strin
     fs.writeFileSync(filePath, JSON.stringify(players, null, 2));
 }
   
+/**
+ * Loads player data from a JSON file and returns it as an array of PlayerData objects.
+ *
+ * @param filePath - The path to the JSON file containing player data
+ * @returns An array of PlayerData objects parsed from the file
+ */
 function loadPlayersFromFile(filePath: string): PlayerData[] {
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data) as PlayerData[];
@@ -119,6 +130,11 @@ client.on('voiceStateUpdate', (oldState: VoiceState, newState: VoiceState) => {
     }
 })
 
+/**
+ * Begins tracking the presence time for a user when they join a monitored voice channel.
+ *
+ * Adds the user's ID and the current timestamp to the presence tracking map if not already present.
+ */
 function startUserCount(newState: any) {
     let member: User = newState.member.user;
     if (!playerPresence.has(member.id)) {
@@ -127,6 +143,11 @@ function startUserCount(newState: any) {
     }
 }
 
+/**
+ * Updates and records the total presence time for a user when they leave a tracked voice channel.
+ *
+ * If the user was being tracked, calculates the duration of their session and adds it to their total presence time.
+ */
 function endUserCount(oldState: any) {
     let member: User = oldState.member.user;
     if (playerPresence.has(member.id)) {
