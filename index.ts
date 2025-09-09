@@ -11,10 +11,18 @@ import {
   PartialUser, 
   TextChannel,
   User,
-  VoiceChannel,
   VoiceState,
 } from "discord.js";
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
+const client = new Client({ 
+  intents: [
+    Intents.FLAGS.GUILDS, 
+    Intents.FLAGS.GUILD_MESSAGES, 
+    Intents.FLAGS.GUILD_VOICE_STATES, 
+    Intents.FLAGS.GUILD_MEMBERS, 
+    Intents.FLAGS.GUILD_MESSAGES, 
+    Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+  ] 
+});
 const token = process.env.TOKEN;
 if (!token) {
   throw new Error("TOKEN manquant dans les variables d'environnement");
@@ -45,7 +53,7 @@ const cmdList: string[] = [
   "?inscription", 
   "?adminInscription", 
   "?sendRapport", 
-  "?sendOPENrapport"
+  "?sendOPENrapport",
 ]; // list of commands
 
 /**
@@ -65,7 +73,7 @@ function savePlayersToFile(
   } catch (err) {
     try {
       if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    } catch { }
+    } catch { /* empty */ }
     console.error("Erreur de sauvegarde data.json:", err);
   }
 }
@@ -81,7 +89,7 @@ function loadPlayersFromFile(filePath: string): PlayerData[] {
     if (!fs.existsSync(filePath)) return [];
     const data = fs.readFileSync(filePath, "utf8");
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed as PlayerData[] : [];
+    return Array.isArray(parsed) ? (parsed as PlayerData[]) : [];
   } catch (err) {
     console.error("Lecture data.json échouée, fallback []:", err);
     return [];
@@ -98,9 +106,9 @@ let msgReactId: string = "";
 
 const minimalTime: number = 1;
 
-let playerPresence: Map<string, number>; // <id, timestamp>
-
-let total: Map<string, number>; // <id, totalPresence>
+const playerPresence: Map<string, number> = new Map(); // <id, timestamp>
+const total: Map<string, number> = new Map(); // <id, totalPresence>
+const saveTotal: Map<string, number> = new Map(); // <id, totalPresence>
 
 let status: Boolean = false; // true if the bot is currently looking
 
@@ -131,18 +139,11 @@ if (process.env.ID_CHANNEL_LOG_RAPPORT) {
   logRapportChannel = process.env.ID_CHANNEL_LOG_RAPPORT.toString();
 }
 
-let saveTotal: Map<string, number>; // <id, totalPresence>
-
-const path = require("path");
-
 client.once("ready", () => {
   console.log("Ready!");
-  playerPresence = new Map<string, number>();
-  total = new Map<string, number>();
-  saveTotal = new Map<string, number>();
 });
 
-client.login(token).then(r => { });
+client.login(token).then(_r => { });
 
 client.on("voiceStateUpdate", (oldState: VoiceState, newState: VoiceState) => {
   if (status) {
@@ -205,13 +206,19 @@ function endUserCount(oldState: any) {
 }
 
 client.on("messageCreate", async (message) => {
-  if (message && message.content === "?resetRolesAll" && message.channel.id === txtChannel) {
+  if (
+    message && 
+    message.content === "?resetRolesAll" && 
+    message.channel.id === txtChannel
+  ) {
     // Permission gate: only administrators or role managers may run this  
     if (
       !message.member?.permissions.has("ADMINISTRATOR") && 
       !message.member?.permissions.has("MANAGE_ROLES")
     ) {
-      return void message.reply("Vous n'avez pas la permission d'exécuter cette commande.");
+      return void message.reply(
+        "Vous n'avez pas la permission d'exécuter cette commande."
+      );
     }
 
     // Look up the roles we need, bail out if one is missing  
@@ -225,7 +232,7 @@ client.on("messageCreate", async (message) => {
 
     if (message.guild) {
       let listMembers = await message.guild.members.fetch();
-      for (const [, member] of listMembers.filter(m => !m.user.bot)) {
+      for (const [, member] of listMembers.filter((m) => !m.user.bot)) {
         try {
           // Only remove if they actually have it, only add if they don’t  
           if (member.roles.cache.has(role.id)) {
@@ -241,7 +248,7 @@ client.on("messageCreate", async (message) => {
     }
 
     message.channel.send(
-      `**${message.author.username}**, le rôle **${role.name}** a été retiré et le rôle **${role2.name}** ajouté à tous les membres.`
+      `**${message.author.username}**, le rôle **${role.name}** a été retiré et le rôle **${role2.name}** ajouté à tous les membres.`,
     );
   }
 });
@@ -314,16 +321,6 @@ client.on("messageCreate", (message) => {
       }
     })
 
-    /*
-    playerPresence.forEach((v, k, map) => {
-        let res: number = v;
-        if(total && total.get(k) !== undefined){
-            res = res + total.get(k)!;
-        }
-        v = 0;
-        total.set(k, res);
-    })*/
-
     message.channel.send("Bot is not looking anymore");
   }
 })
@@ -338,7 +335,7 @@ function loadSave() {
   saveTotal.clear();
 }
 
-client.on("messageReactionAdd", async (reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) => {
+client.on("messageReactionAdd", async (reaction: MessageReaction | PartialMessageReaction, _user: User | PartialUser) => {
   let msg = reaction.message;
   if (msg.id === msgReactId) {
     if (
@@ -347,10 +344,10 @@ client.on("messageReactionAdd", async (reaction: MessageReaction | PartialMessag
       reaction.count > 1
     ) {
       loadSave();
-      await msg.delete().then(r => { });
-      msg.channel.send("Chargment effectuer");
+      await msg.delete().then(_r => { });
+      msg.channel.send("Chargement effectué.");
     } else if (reaction.emoji.name === "❎" && reaction.count && reaction.count > 1) {
-      await msg.delete().then(r => { });
+      await msg.delete().then(_r => { });
     }
   }
 })
@@ -398,10 +395,10 @@ client.on("messageCreate", async (message) => {
       }
     }
     total.forEach((value, key) => {
-      let hours = Math.floor(value / 3600000);
-      let minutes = Math.floor((value % 3600000) / 60000);
-      let seconds = Math.floor(((value % 360000) % 60000) / 1000);
-      totalString += key + " : " + hours + "h " + minutes + "m " + seconds + "s\n";
+      let hours = Math.floor(value / 3600000);  
+      let minutes = Math.floor((value % 3600000) / 60000);  
+      let seconds = Math.floor(((value % 3600000) % 60000) / 1000);  
+      totalString += key + " : " + hours + "h " + minutes + "m " + seconds + "s\n";  
     });
     if (totalString !== "") {
       message.channel.send(totalString);
@@ -486,19 +483,18 @@ client.on("messageCreate", async (message) => {
       let days = Math.floor(ms / (24 * 60 * 60 * 1000));
       let daysms = ms % (24 * 60 * 60 * 1000);
       let hours = Math.floor(daysms / (60 * 60 * 1000));
-      let hoursms = ms % (60 * 60 * 1000);
+      let hoursms = daysms % (60 * 60 * 1000);
       let minutes = Math.floor(hoursms / (60 * 1000));
-      let minutesms = ms % (60 * 1000);
+      let minutesms = hoursms % (60 * 1000);
       let sec = Math.floor(minutesms / 1000);
       player.tempsDeJeu = days + "j " + hours + "h " + minutes + "m " + sec + "s";
 
       let msV = value;
-      let daysV = Math.floor(msV / (24 * 60 * 60 * 1000));
       let daysmsV = msV % (24 * 60 * 60 * 1000);
       let hoursV = Math.floor(daysmsV / (60 * 60 * 1000));
-      let hoursmsV = msV % (60 * 60 * 1000);
+      let hoursmsV = daysmsV % (60 * 60 * 1000);
       let minutesV = Math.floor(hoursmsV / (60 * 1000));
-      let minutesmsV = msV % (60 * 1000);
+      let minutesmsV = hoursmsV % (60 * 1000);
       let secV = Math.floor(minutesmsV / 1000);
 
       if (hoursV > 0 || minutesV >= minimalTime) {
@@ -527,95 +523,6 @@ client.on("messageCreate", async (message) => {
         ]
       }
     )
-
-    /*
-    let sheetData = getData();
-
-    let infoRow = sheetData[0];
-
-    let rowCount: number = 0;
-
-    infoRow.forEach(() => {
-        rowCount = rowCount + 1;
-    })
-
-    let dayDate = new Date();
-    let day = dayDate.getDate();
-    let month = dayDate.getMonth() + 1;
-    let dateValue = "";
-    if(day < 10){
-        dateValue = "0" + day;
-    }else{
-        dateValue = "" + day;
-    }
-
-    if(month < 10){
-        dateValue = dateValue + "/0" + month;
-    }else{
-        dateValue = dateValue + "/" + month;
-    }
-
-    infoRow[rowCount] = dateValue;
-
-    total.forEach((value, key) => {
-        sheetData.forEach((row: any) => {
-            if(row[0] === key){
-                console.log("entered");
-                let calc: number = 0
-                let actual: string = row[6];
-                let aDay = actual.substring(0, actual.indexOf("j"));
-                calc = calc + (parseInt(aDay) * 24 * 60 * 60 * 1000);
-
-                let aHour = actual.substring(actual.indexOf("j")+2, actual.indexOf("h"));
-                calc = calc + (parseInt(aHour) * 60 * 60 * 1000);
-
-                let aMinute = actual.substring(actual.indexOf("h")+2, actual.indexOf("m"));
-                calc = calc + (parseInt(aMinute) * 60 * 1000);
-
-                let aSecond = actual.substring(actual.indexOf("m")+2, actual.indexOf("s"));
-                calc = calc + (parseInt(aSecond) * 1000);
-
-                let ms = calc + value;
-                let days = Math.floor(ms / (24*60*60*1000));
-                let daysms = ms % (24*60*60*1000);
-                let hours = Math.floor(daysms / (60*60*1000));
-                let hoursms = ms % (60*60*1000);
-                let minutes = Math.floor(hoursms / (60*1000));
-                let minutesms = ms % (60*1000);
-                let sec = Math.floor(minutesms / 1000);
-                row[6] = days + "j " + hours + "h " + minutes + "m " + sec + "s";
-
-                let msV = value;
-                let daysV = Math.floor(msV / (24*60*60*1000));
-                let daysmsV = msV % (24*60*60*1000);
-                let hoursV = Math.floor(daysmsV / (60*60*1000));
-                let hoursmsV = msV % (60*60*1000);
-                let minutesV = Math.floor(hoursmsV / (60*1000));
-                let minutesmsV = msV % (60*1000);
-                let secV = Math.floor(minutesmsV / 1000);
-
-
-                if (hoursV > 0 || minutesV >= minimalTime){
-                    row[7] = parseInt(row[7]) + 1;
-                }
-                row.push(hoursV + "h " + minutesV + "m " + secV + "s");
-
-            }
-        })
-    })
-
-    sheetData.forEach((row: any) => {
-        if (!row[rowCount]){
-            row.push("X");
-        }
-    })
-
-    dataValue = sheetData;
-
-    sendData();
-
-    clearing();
-    */
   }
 })
 
@@ -624,7 +531,7 @@ client.on("messageCreate", async (message) => {
     let member = message.member;
     let msg = message.content;
     let list = msg.split(" ");
-    let discordName: string | undefined = "";
+    let discordName: string = "";
     let name = "";
     let lastName = "";
     let classe = "";
@@ -678,7 +585,9 @@ client.on("messageCreate", async (message) => {
         discordName = list[1];
         // get all member
         let members = await message.guild?.members.fetch();
-        let memberFind = members?.find((member) => member.user.id === discordName);
+        let memberFind = members?.find(
+          (member) => member.user.id === discordName
+        );
 
         if (!memberFind) {
           message.channel.send("L'utilisateur n'existe pas !");
@@ -755,7 +664,9 @@ client.on("messageCreate", async (message) => {
   ) {
     const debugChannel = message.guild?.channels.cache.find((channel) => channel.id === logRapportChannel) as TextChannel | undefined;
     if (!debugChannel) {
-      return void message.reply("Canal de log (LOG_RAPPORT) introuvable.");
+      return void message.reply(
+        "Canal de log (LOG_RAPPORT) introuvable."
+      );
     }
     let id: string = message.member!.user.id;
     await debugChannel.send("- <@" + id + "> - Rapport en cours de traitement");
@@ -771,74 +682,5 @@ client.on("messageCreate", async (message) => {
 
     await message.member?.send(msg).catch(console.error);
     await debugChannel.send("- <@" + message.member?.user.id + "> - Message envoyé");
-  } else if (message.content.startsWith("?sendOPENrapport") && message.channel.id === txtChannel) {
-
-    // console.log("sendOPENrapport");
-
-
-    // get lastname[2], name[3], classe[4], point[7] and export it in csvFile
-    // let data = [""]
-
-    // console.log("get data");
-
-    // let msg1I = "Nom;Prenom;Classe;Point";
-    // let msgOther = "Nom;Prenom;Classe;Point";
-
-
-    // data.forEach((row: string) => {
-
-    //     if(!row[4].startsWith('1PPA')){
-    //         let pointToRemove = 0
-    //         for (let i = 8; i < 29; i++) { // remove point before second semester so we still get bonus point
-    //             if (row[i] != 'X') {
-    //                 let l = row[i]
-    //                 console.log("la ligne =:" + l)
-    //                 if (l == undefined){
-    //                     continue;
-    //                 }
-    //                 let lh = l.substring(0, l.indexOf('h')+1);
-    //                 console.log("lh: " + lh)
-    //                 let lm = l.substring(l.indexOf('h')+2, l.indexOf('m')+1);
-    //                 console.log("lm: " + lm)
-
-    //                 if (lh.length == 2) {
-    //                     if (parseInt(lh.substring(0, 1)) == 0) {
-    //                         if (lm.length == 2) {
-    //                             console.log("skipped 1 ");
-    //                             continue;
-    //                         } else {
-    //                             if (parseInt(lm.substring(0, 2)) < 30) {
-    //                                 console.log("skipped 2 ");
-
-    //                                 continue;
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 console.log(row[i]);
-    //                 pointToRemove = pointToRemove + 1; //participation before second semester
-    //             }
-    //         }
-    //         let totalPoint = parseInt(row[7]) - pointToRemove;
-
-    //         if (row[4].startsWith("1i") || row[4].startsWith("1I") || row[4].startsWith("1ESGI") || row[4].startsWith("2i") || row[4].startsWith("2I")) {
-    //             msg1I = msg1I + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
-    //         }else{
-    //             msgOther = msgOther + "\n" + row[3] + ";" + row[2] + ";" + row[4] + ";" + totalPoint;
-    //         }
-    //     }
-
-
-    // });
-
-    // console.log("created msg");
-
-    // let file1I = new MessageAttachment(Buffer.from(msg1I), "RapportRocketLeague1I2I.csv");
-    // let fileOther = new MessageAttachment(Buffer.from(msgOther), "RapportRocketLeague.csv");
-
-    // console.log("created file");
-
-    // await message.channel.send({files: [file1I, fileOther]});
-
-  }
+  } 
 })
