@@ -6,7 +6,6 @@ import {
     Collection,
     GuildMember,
     Intents,
-    MessageAttachment,
     MessageReaction,
     PartialMessageReaction, PartialUser, TextChannel,
     User,
@@ -70,9 +69,6 @@ let playerPresence: Map<string, number>; // <id, timestamp>
 let total: Map<string, number>; // <id, totalPresence>
 
 let status: Boolean = false; // true if the bot is currently looking
-
-
-let cmdList: string[] = ["?help", "?status", "?start", "?stop", "?total", "?clear", "?export", "?inscription", "?adminInscription", "?sendRapport", "?sendOPENrapport"]; // list of commands
 
 let txtChannel = "";
 if(process.env.ID_CHANNEL_TXT) {
@@ -716,7 +712,7 @@ client.on('messageCreate', async (message) => {
         if(playerInfo === undefined){
             await debugChannel.send("- <@" + message.member?.user.id + "> - Info non trouvée, n'a pas participé aux sessions");
             await message.member?.send("Info non trouvée, vous n'avez pas participé aux sessions").catch(console.error);
-        return;
+            return;
         }
         msg = msg + "PseudoRL : " + playerInfo.pseudoRL + "\nNom : " + playerInfo.nom + "\nPrenom : " + playerInfo.prenom + "\nClasse : " + playerInfo.classe + "\nMail MyGES : " + playerInfo.mailMyges + "\nTemps de jeu : " + playerInfo.tempsDeJeu + "\nPoint : " + playerInfo.point + "\n";
 
